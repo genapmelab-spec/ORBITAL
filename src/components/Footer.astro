@@ -1,0 +1,49 @@
+---
+import { FOOTER } from '../content/mission';
+---
+
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <p class="footer-wordmark" data-reveal>
+      {
+        FOOTER.wordmark.map((line) => (
+          <span class:list={{ 'is-ember': line.tone === 'ember', 'is-ghost': line.tone === 'ghost' }}>
+            {line.text}
+          </span>
+        ))
+      }
+    </p>
+
+    <div class="footer-cols">
+      <div data-reveal>
+        <p class="footer-brand">◈ Orbital</p>
+        <p>{FOOTER.columns[0].body}</p>
+        <p class="footer-status">{FOOTER.status}</p>
+      </div>
+
+      {
+        FOOTER.columns.slice(1).map((column) => (
+          <div data-reveal>
+            <h3>{column.title}</h3>
+            <ul>
+              {column.items?.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))
+      }
+    </div>
+
+    <div class="footer-legal">
+      <span>{FOOTER.legal}</span>
+      <span class="footer-links">
+        {
+          FOOTER.links.map((link) => (
+            <a href={link.href}>{link.label}</a>
+          ))
+        }
+      </span>
+    </div>
+  </div>
+</footer>

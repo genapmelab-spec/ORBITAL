@@ -1,0 +1,253 @@
+---
+import Base from '../layouts/Base.astro';
+import ActSection from '../components/ActSection.astro';
+import BookingForm from '../components/BookingForm.astro';
+import Footer from '../components/Footer.astro';
+import Nav from '../components/Nav.astro';
+import Preloader from '../components/Preloader.astro';
+import Scene from '../components/Scene.astro';
+import StageIndicator from '../components/StageIndicator.astro';
+import { ARRIVE, CROSS, FLY, HERO, SECURE } from '../content/mission';
+
+const summaries = [
+  'Act one, leave. The camera holds close on Earth’s horizon at four hundred and eight kilometres, where the atmosphere rims the planet in cool blue. Headline: beyond the stars awaits you.',
+  'Act two, cross. Earth recedes to an electric blue point as the ship drifts through open space. Three trajectory vectors are listed: trans-lunar transit, heliocentric cruise, and orbital insertion, followed by the origin to destination timeline.',
+  'Act three, arrive. Mars fills the frame, its rust surface angled against the single key light. Four mission statistics are listed: distance from Earth, peak surface temperature, primary landing zone, and atmospheric descent.',
+  'Act four, fly. The Orbital X1 Cruiser holds station alongside, engines lit. Four systems are described: ion thrusters, panoramic domes, aerogel shielding, and tandem capacity, with a telemetry strip below.',
+  'Act five, secure. The cruiser withdraws into open space and the reservation manifest is presented as a single focused form.',
+];
+---
+
+<Base>
+  <Preloader />
+  <Scene />
+  <Nav />
+  <StageIndicator />
+
+  <main class="page" id="main">
+    <!-- ===================== ACT 01 · LEAVE ===================== -->
+    <ActSection id="leave" act={0} slug="leave" log={HERO.log} summary={summaries[0]}>
+      <div class="hero-meta mono mono--micro" data-reveal-onload>
+        <span>{HERO.eyebrow}</span>
+        <span aria-hidden="true">Vehicle: Orbital X1 · Crew 3</span>
+      </div>
+
+      <h1 class="display display--hero hero-title" id="leave-heading" data-reveal-onload>
+        {HERO.titleLines.map((line) => <span data-reveal-line>{line}</span>)}
+      </h1>
+
+      <p class="hero-lede lede" data-reveal-onload>{HERO.lede}</p>
+
+      <div class="hero-actions" data-reveal-onload>
+        <a class="btn btn--ember btn--large" href={HERO.primary.href}>
+          <span>{HERO.primary.label} →</span>
+        </a>
+        <a class="btn btn--ghost btn--large" href={HERO.secondary.href}>
+          <span>{HERO.secondary.label}</span>
+        </a>
+      </div>
+
+      <p class="hero-readiness mono" data-reveal-onload>
+        <span>◉ {HERO.readiness}</span>
+        <b>{HERO.readinessNote}</b>
+      </p>
+
+      <p class="hero-cue mono mono--micro" aria-hidden="true">
+        {HERO.cue}
+        <i />
+      </p>
+
+      <div class="hero-telemetry mono mono--micro" aria-hidden="true" data-reveal-onload>
+        {
+          HERO.telemetry.map((entry) => (
+            <div>
+              <span>{entry.label}</span>
+              <b>{entry.value}</b>
+            </div>
+          ))
+        }
+      </div>
+    </ActSection>
+
+    <!-- ===================== ACT 02 · CROSS ===================== -->
+    <ActSection id="cross" act={1} slug="cross" log={CROSS.log} summary={summaries[1]}>
+      <span class="ghost-numeral" aria-hidden="true">02</span>
+
+      <div class="cross-top">
+        <h2 class="display cross-title" id="cross-heading">
+          {CROSS.titleLines.map((line) => <span class:list={{ 'is-muted': line.muted }}>{line.text}</span>)}
+        </h2>
+
+        <div class="cross-body">
+          {CROSS.body.map((paragraph) => <p class="lede" data-reveal>{paragraph}</p>)}
+
+          <figure class="corridor" data-reveal>
+            <figcaption class="mono mono--micro corridor__head">
+              <span>{CROSS.corridor.title}</span>
+              <b>{CROSS.corridor.value}</b>
+            </figcaption>
+
+            <svg
+              class="corridor__plot"
+              viewBox="0 0 260 120"
+              role="img"
+              aria-label="Orbit diagram: a transfer arc between a low Earth orbit and a heliocentric cruise line."
+            >
+              <ellipse class="is-dashed" cx="130" cy="60" rx="118" ry="46" />
+              <ellipse class="is-ion" cx="130" cy="60" rx="54" ry="21" />
+              <line class="is-dashed" x1="12" y1="60" x2="248" y2="60" />
+              <path class="is-ember" d="M76 60 A 118 46 0 0 1 196 24" />
+              <circle class="is-fill" cx="76" cy="60" r="3.4" />
+              <circle class="is-fill" cx="196" cy="24" r="3.4" />
+            </svg>
+
+            <ul class="mono mono--micro corridor__legend">
+              {CROSS.corridor.legend.map((line) => <li>{line}</li>)}
+            </ul>
+
+            <p class="mono mono--micro corridor__legend"><b>{CROSS.corridor.footnote}</b></p>
+          </figure>
+        </div>
+      </div>
+
+      <dl class="spec-list">
+        {
+          CROSS.vectors.map((vector) => (
+            <div class="spec-list__row" data-reveal>
+              <dt>{vector.code}</dt>
+              <dd>
+                <span class="spec-list__name">{vector.name}</span>
+                <span class="spec-list__body">{vector.body}</span>
+              </dd>
+              <span class="mono mono--micro spec-list__value">{vector.value}</span>
+            </div>
+          ))
+        }
+      </dl>
+
+      <div class="timeline" data-timeline>
+        <p class="eyebrow" data-reveal>
+          <span>{CROSS.timeline.log}</span>
+        </p>
+        <h3 class="display timeline__title" data-reveal>
+          {CROSS.timeline.titleLines.map((line) => <span class:list={{ 'is-accent': line.accent }}>{line.text}</span>)}
+        </h3>
+
+        <div class="timeline__rail">
+          <span class="timeline__marker" data-timeline-marker />
+        </div>
+
+        <div class="timeline__ends">
+          <div>
+            <span class="mono mono--micro">{CROSS.timeline.origin.label}</span>
+            <b>{CROSS.timeline.origin.name}</b>
+            <span class="mono mono--micro muted">{CROSS.timeline.origin.meta}</span>
+          </div>
+          <div>
+            <span class="mono mono--micro">{CROSS.timeline.cruise.label}</span>
+            <b>{CROSS.timeline.cruise.name}</b>
+            <span class="mono mono--micro muted">{CROSS.timeline.cruise.meta}</span>
+          </div>
+          <div>
+            <span class="mono mono--micro">{CROSS.timeline.destination.label}</span>
+            <b>{CROSS.timeline.destination.name}</b>
+            <span class="mono mono--micro muted">{CROSS.timeline.destination.meta}</span>
+          </div>
+        </div>
+      </div>
+    </ActSection>
+
+    <!-- ===================== ACT 03 · ARRIVE ===================== -->
+    <ActSection id="arrive" act={2} slug="arrive" log={ARRIVE.log} summary={summaries[2]}>
+      <span class="watermark arrive-watermark" aria-hidden="true">{ARRIVE.watermark}</span>
+
+      <div class="arrive-head">
+        <h2 class="display arrive-head__title" id="arrive-heading">
+          {ARRIVE.title.lead} <span>{ARRIVE.title.accent}</span>
+        </h2>
+
+        <div class="arrive-telemetry">
+          <span class="pill"><i aria-hidden="true" />{ARRIVE.live}</span>
+          {ARRIVE.telemetry.map((line) => <p class="mono mono--micro muted">{line}</p>)}
+        </div>
+      </div>
+
+      <div class="stats">
+        {
+          ARRIVE.stats.map((stat) => (
+            <article class="stat" data-reveal>
+              <span class="mono mono--micro stat__index" aria-hidden="true">{stat.index}</span>
+              <span class="mono mono--micro stat__label">{stat.label}</span>
+              <span class="stat__value">{stat.value}</span>
+              <span class="stat__body">{stat.body}</span>
+            </article>
+          ))
+        }
+      </div>
+
+      <div class="protocol-row" data-reveal>
+        <div>
+          <p class="mono mono--micro muted">{ARRIVE.protocol.eyebrow}</p>
+          <p>{ARRIVE.protocol.body}</p>
+        </div>
+        <div class="protocol-row__actions">
+          {
+            ARRIVE.protocol.actions.map((action) => (
+              <a class="btn btn--ghost" href={action.href}>
+                <span>{action.label}</span>
+              </a>
+            ))
+          }
+        </div>
+      </div>
+    </ActSection>
+
+    <!-- ===================== ACT 04 · FLY ===================== -->
+    <ActSection id="fly" act={3} slug="fly" log={FLY.log} summary={summaries[3]}>
+      <div class="fly-head">
+        <h2 class="display fly-head__title" id="fly-heading">
+          <span>{FLY.title.lead}</span>
+          <span class="is-accent">{FLY.title.accent}</span>
+        </h2>
+        <p class="fly-lede" data-reveal>{FLY.lede}</p>
+        <p class="mono mono--micro muted" data-reveal>Chassis 04 · Twin pillar · Panoramic quartz</p>
+      </div>
+
+      <div class="features">
+        {
+          FLY.features.map((feature) => (
+            <article class="feature" data-reveal>
+              <h3 class="feature__title">{feature.title}</h3>
+              <p class="feature__body">{feature.body}</p>
+            </article>
+          ))
+        }
+      </div>
+
+      <div class="telemetry-strip" data-reveal>
+        {
+          FLY.telemetry.map((entry) => (
+            <div>
+              <span class="mono mono--micro">{entry.label}</span>
+              <b>{entry.value}</b>
+            </div>
+          ))
+        }
+      </div>
+    </ActSection>
+
+    <!-- ===================== ACT 05 · SECURE ===================== -->
+    <ActSection id="secure" act={4} slug="secure" log={SECURE.log} summary={summaries[4]}>
+      <div class="secure-head">
+        <h2 class="display secure-head__title" id="secure-heading">
+          {SECURE.title.lead} <span>{SECURE.title.accent}</span>
+        </h2>
+        <p class="secure-head__lede lede" data-reveal>{SECURE.lede}</p>
+      </div>
+
+      <BookingForm />
+    </ActSection>
+  </main>
+
+  <Footer />
+</Base>

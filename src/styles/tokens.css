@@ -1,0 +1,94 @@
+/* ============================================================================
+   tokens.css — the single source of design values.
+   Nothing in src/components or src/three may hardcode a colour, size, or
+   rhythm that is not derived from here (docs/AGENTS.md: "Tokens only").
+   ========================================================================== */
+
+@theme {
+  /* ---- Colour ------------------------------------------------------- */
+  --color-void: #030510;        /* page base — deepest space */
+  --color-void-2: #05080f;      /* alternating band */
+  --color-space: #0a0f1e;       /* raised surface */
+  --color-panel: #0c1322;       /* card / form surface */
+  --color-line: #1b2436;        /* hairline */
+  --color-line-soft: #121a2a;   /* faint divider */
+  --color-text: #f2f5fa;
+  --color-muted: #8b95a9;
+  --color-muted-dim: #5b657a;
+  --color-ember: #ff6b35;       /* owns ALL interaction */
+  --color-ember-deep: #c94a1b;
+  --color-solar: #ffc15e;       /* focus + telemetry */
+  --color-ion: #7dd3fc;         /* atmosphere + data only, never a button */
+
+  /* ---- Type families ------------------------------------------------ */
+  --font-display: "Space Grotesk", "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  /* ---- Fluid type scale -------------------------------------------- */
+  --text-hero: clamp(2.6rem, 8.4vw, 7.25rem);
+  --text-display: clamp(2.25rem, 6.4vw, 5.25rem);
+  --text-h2: clamp(1.625rem, 3.6vw, 2.75rem);
+  --text-h3: clamp(1.125rem, 1.7vw, 1.5rem);
+  --text-body: clamp(0.975rem, 0.32vw + 0.88rem, 1.125rem);
+  --text-mono: clamp(0.6875rem, 0.24vw + 0.62rem, 0.8125rem);
+  --text-micro: clamp(0.5625rem, 0.2vw + 0.5rem, 0.6875rem);
+
+  /* ---- Spacing rhythm ---------------------------------------------- */
+  --spacing-gutter: clamp(1.25rem, 4.6vw, 5.5rem);
+  --spacing-act: clamp(5.5rem, 13vh, 10rem);
+  --spacing-block: clamp(1.75rem, 4vh, 3.25rem);
+
+  /* ---- Motion ------------------------------------------------------- */
+  --ease-weightless: cubic-bezier(0.16, 0.84, 0.28, 1);
+  --ease-drift: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --dur-fast: 180ms;
+  --dur-mid: 420ms;
+  --dur-slow: 900ms;
+
+  /* ---- Depth -------------------------------------------------------- */
+  --z-scene: 0;
+  --z-anchor: 1;
+  --z-content: 2;
+  --z-chrome: 40;
+  --z-overlay: 60;
+  --z-preload: 80;
+}
+
+:root {
+  color-scheme: dark;
+
+  /* Non-Tailwind extras referenced by hand-authored CSS */
+  --tracking-log: 0.16em;
+  --tracking-wide: 0.22em;
+  --hairline: 1px;
+  --radius-none: 0px;
+  --radius-sm: 2px;
+  --radius-pill: 999px;
+  --ring-focus: 2px;
+  /* width reserved for the pinned mission log at >=1024 (see cosmic.css) */
+  --rail-w: 0rem;
+  --content-max: 92rem;
+  --measure: 46ch;
+  --measure-tight: 34ch;
+
+  /* Opacity ramp for ghost / layered type (reference 2 & 3 motif) */
+  --o-ghost: 0.055;
+  --o-ghost-2: 0.11;
+  --o-watermark: 0.055;
+  --o-hair: 0.5;
+
+  /* Scrim strengths over bright scene frames */
+  --scrim-1: linear-gradient(
+    180deg,
+    rgba(3, 5, 16, 0.74) 0%,
+    rgba(3, 5, 16, 0.26) 38%,
+    rgba(3, 5, 16, 0.88) 100%
+  );
+  --scrim-side: linear-gradient(
+    90deg,
+    rgba(3, 5, 16, 0.92) 0%,
+    rgba(3, 5, 16, 0.42) 46%,
+    rgba(3, 5, 16, 0) 100%
+  );
+}

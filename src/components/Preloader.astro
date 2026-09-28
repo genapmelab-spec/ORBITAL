@@ -1,0 +1,39 @@
+---
+import { NAV_STAGES } from '../content/mission';
+
+const logLines = [
+  'Ignition sequence armed',
+  'Guidance platform aligned',
+  'Cabin pressure nominal · 101.3 kPa',
+  'Range is clear — go for flight',
+];
+
+const lastStage = NAV_STAGES[NAV_STAGES.length - 1];
+---
+
+<div class="preloader" data-preloader>
+  <div class="preloader__inner">
+    <p class="preloader__word" data-preloader-word>Orbital</p>
+
+    <ul class="mono preloader__log" data-preloader-log>
+      {
+        logLines.map((line, index) => (
+          <li data-preloader-line={index}>{`> ${line}`}</li>
+        ))
+      }
+    </ul>
+
+    <div class="preloader__bar" role="presentation">
+      <i data-preloader-bar></i>
+    </div>
+
+    <div class="mono mono--micro preloader__meta">
+      <span data-preloader-stage>Mission 01 · {NAV_STAGES[0].label}</span>
+      <span data-preloader-percent>00%</span>
+    </div>
+
+    <span class="sr-only" data-preloader-status role="status" aria-live="polite">
+      Preparing mission sequence. Final act: {lastStage.label}.
+    </span>
+  </div>
+</div>

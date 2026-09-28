@@ -1,0 +1,50 @@
+---
+import { NAV_STAGES } from '../content/mission';
+
+const RADIUS = 35;
+const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+---
+
+<!--
+  Pinned mission log (docs/DESIGN.md §5). This is a progress indicator on the
+  right edge, not a navigation rail and never a sidebar: five dots, no panels,
+  and it disappears entirely below 1024px in favour of the top progress bar.
+-->
+<nav class="stage-indicator" aria-label="Flight progress" data-stage-indicator>
+  <ul class="stage-indicator__list">
+    {
+      NAV_STAGES.map((stage) => (
+        <li>
+          <a class="stage-indicator__item" href={stage.href} data-stage-link={stage.index}>
+            <span>
+              <em aria-hidden="true">{stage.index}</em> {stage.label}
+            </span>
+            <i aria-hidden="true" />
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+
+  <div class="stage-dial" aria-hidden="true">
+    <svg viewBox="0 0 80 80">
+      <circle class="stage-dial__track" cx="40" cy="40" r={RADIUS}></circle>
+      <circle
+        class="stage-dial__value"
+        cx="40"
+        cy="40"
+        r={RADIUS}
+        stroke-dasharray={CIRCUMFERENCE.toFixed(2)}
+        stroke-dashoffset={CIRCUMFERENCE.toFixed(2)}
+        data-stage-dial
+      ></circle>
+    </svg>
+    <span class="stage-dial__read" data-stage-percent>00</span>
+  </div>
+
+  <p class="sr-only" data-stage-beat>Next: mission 01, leave Earth orbit.</p>
+</nav>
+
+<div class="stage-rail" aria-hidden="true">
+  <span class="stage-rail__value" data-stage-rail></span>
+</div>

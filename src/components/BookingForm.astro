@@ -1,0 +1,171 @@
+---
+import { DEPARTURE_WINDOWS, DESTINATIONS, PASSENGER_COUNTS, SECURE } from '../content/mission';
+
+const fields = SECURE.fields;
+---
+
+<div class="secure-form" data-booking>
+  <form class="form-panel" data-booking-form novalidate>
+    <div class="form-grid">
+      <fieldset class="field">
+        <legend class="field__label">
+          <em>{fields.destination.index}</em>
+          {fields.destination.label}
+          <i>Required</i>
+        </legend>
+
+        <div class="dest-cards">
+          {
+            DESTINATIONS.map((destination, index) => (
+              <label class="dest-card" data-dest-card>
+                <input
+                  type="radio"
+                  name="destination"
+                  value={destination.id}
+                  id={`dest-${destination.id}`}
+                  checked={index === 0}
+                  required
+                  aria-describedby="error-destination"
+                />
+                <span class="dest-card__dot" aria-hidden="true"></span>
+                <span class="dest-card__name">{destination.name}</span>
+                <span class="mono mono--micro dest-card__meta">
+                  {destination.code} · {destination.window}
+                </span>
+              </label>
+            ))
+          }
+        </div>
+
+        <p class="field__error" id="error-destination">Select a destination target.</p>
+      </fieldset>
+
+      <div class="form-grid form-grid--split">
+        <div class="field" data-field>
+          <label class="field__label" for="booking-window">
+            <em>{fields.window.index}</em>
+            {fields.window.label}
+            <i>Required</i>
+          </label>
+          <select
+            class="field__control"
+            id="booking-window"
+            name="window"
+            required
+            aria-describedby="error-window"
+          >
+            {
+              DEPARTURE_WINDOWS.map((window) => (
+                <option value={window.value}>{window.label}</option>
+              ))
+            }
+          </select>
+          <p class="field__error" id="error-window">Choose a departure window.</p>
+        </div>
+
+        <div class="field" data-field>
+          <label class="field__label" for="booking-passengers">
+            <em>{fields.passengers.index}</em>
+            {fields.passengers.label}
+            <i>Required</i>
+          </label>
+          <select
+            class="field__control"
+            id="booking-passengers"
+            name="passengers"
+            required
+            aria-describedby="error-passengers"
+          >
+            {
+              PASSENGER_COUNTS.map((count) => (
+                <option value={count.value}>{count.label}</option>
+              ))
+            }
+          </select>
+          <p class="field__error" id="error-passengers">Select a traveller count.</p>
+        </div>
+      </div>
+
+      <div class="form-grid form-grid--split">
+        <div class="field" data-field>
+          <label class="field__label" for="booking-name">
+            <em>{fields.name.index}</em>
+            {fields.name.label}
+            <i>Required</i>
+          </label>
+          <input
+            class="field__control"
+            id="booking-name"
+            name="name"
+            type="text"
+            autocomplete="name"
+            required
+            minlength="2"
+            maxlength="64"
+            placeholder="Surname / Given name"
+            aria-describedby="error-name"
+          />
+          <p class="field__error" id="error-name">Enter the passenger name as it appears on legal identity.</p>
+        </div>
+
+        <div class="field" data-field>
+          <label class="field__label" for="booking-email">
+            <em>{fields.email.index}</em>
+            {fields.email.label}
+            <i>Required</i>
+          </label>
+          <input
+            class="field__control"
+            id="booking-email"
+            name="email"
+            type="email"
+            autocomplete="email"
+            required
+            placeholder="passenger@orbital.example"
+            aria-describedby="error-email"
+          />
+          <p class="field__error" id="error-email">Enter a valid comms address.</p>
+        </div>
+      </div>
+
+      <ul class="form-notices">
+        {
+          SECURE.notices.map((notice) => (
+            <li class:list={[{ 'is-ember': notice.tone === 'ember', 'is-dim': notice.tone === 'dim' }]}>
+              {notice.text}
+            </li>
+          ))
+        }
+      </ul>
+
+      <div class="form-foot">
+        <p class="mono mono--micro">{SECURE.footnote}</p>
+        <button class="btn btn--ember btn--large" type="submit" data-booking-submit>
+          <span>{SECURE.submit} →</span>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <div class="form-success" data-booking-success role="status" tabindex="-1" aria-live="polite">
+    <h3 class="form-success__title">{SECURE.success.title}</h3>
+    <p class="lede">{SECURE.success.body}</p>
+
+    <dl class="mono mono--micro form-success__log">
+      {
+        SECURE.success.log.map((row) => (
+          <div>
+            <dt>{row.key}</dt>
+            <dd data-success-value={row.key.toLowerCase()}>—</dd>
+          </div>
+        ))
+      }
+    </dl>
+
+    <p>
+      <button class="btn btn--ghost" type="button" data-booking-reset>
+        <span>{SECURE.success.reset}</span>
+      </button>
+    </p>
+  </div>
+</div>
