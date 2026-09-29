@@ -1,0 +1,58 @@
+/* ==========================================================================
+   ORBITAL — design tokens (single source: Orbital Docs/DESIGN.md)
+   Tailwind v4 theme mapping + raw custom properties for the scene layer.
+   ========================================================================== */
+
+@theme {
+  /* Surfaces — cold, deep space */
+  --color-void: #030510;
+  --color-space: #0a0f1e;
+
+  /* Text */
+  --color-text: #f2f5fa;
+  --color-muted: #8b95a9;
+
+  /* Accents — ember is the ONLY interaction color */
+  --color-ember: #ff6b35;
+  --color-solar: #ffc15e; /* focus rings, telemetry, sun light */
+  --color-ion: #7dd3fc; /* atmosphere & data only, never buttons */
+
+  /* Typography */
+  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+  --font-body: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
+
+  /* Spacing rhythm — generous, cinematic */
+  --spacing-gutter: 1.5rem;
+  --spacing-stage-min: 100svh;
+
+  /* Motion — weightless, long ease-outs, never bouncy */
+  --ease-drift: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-caption: 900ms;
+  --duration-scene: 1400ms;
+}
+
+:root {
+  /* Scene-layer variables (used by shaders, canvas overlays, scrim) */
+  --orb-void: #030510;
+  --orb-space: #0a0f1e;
+  --orb-text: #f2f5fa;
+  --orb-muted: #8b95a9;
+  --orb-ember: #ff6b35;
+  --orb-solar: #ffc15e;
+  --orb-ion: #7dd3fc;
+
+  /* Caption scrim — keeps type AA against bright planetary limbs */
+  --orb-scrim: rgb(3 5 16 / 0.62);
+
+  /* Hairlines, not cards */
+  --orb-hairline: rgb(139 149 169 / 0.22);
+
+  /* Chrome visibility driven by scroll (nav.ts toggles --chrome-settled) */
+  --chrome-opacity: 0;
+  --chrome-y: -0.75rem;
+
+  /* Journey progress set by scrollController (0..1) */
+  --journey-progress: 0;
+}
