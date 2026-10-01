@@ -1,0 +1,66 @@
+---
+import type { SectionAction, SectionPoint } from '../content/journey';
+
+/**
+ * Why this journey — the page's value proposition, stated once. Three numbered
+ * lines of editorial type, not a feature grid: the numbers echo the stage rail,
+ * so the section reads as part of the journey rather than a marketing insert.
+ * It sits on the far-outer-system composition, where the void does the arguing.
+ */
+export interface Props {
+  id: string;
+  kicker: string;
+  statement: string;
+  points: readonly SectionPoint[];
+  actions?: readonly SectionAction[];
+  captionPos: 'left' | 'right' | 'center';
+  param: number;
+  summary: string;
+}
+
+const { id, kicker, statement, points, actions, captionPos, param, summary } = Astro.props;
+---
+
+<section
+  class="stage stage--manifest"
+  id={id}
+  data-section
+  data-kind="manifest"
+  data-param={param}
+  data-caption-pos={captionPos}
+  aria-label={kicker}
+>
+  <div class="manifest-body">
+    <p class="moment-kicker u-mono" data-reveal>
+      <span class="stage-rule" data-reveal-line></span>
+      <span>{kicker}</span>
+    </p>
+    <p class="moment-statement" data-reveal>{statement}</p>
+    <ol class="manifest-points" data-reveal>
+      {
+        points.map((point, index) => (
+          <li class="manifest-point">
+            <span class="u-mono manifest-point-index">{String(index + 1).padStart(2, '0')}</span>
+            <h3 class="manifest-point-title">{point.title}</h3>
+            <p class="manifest-point-text">{point.text}</p>
+          </li>
+        ))
+      }
+    </ol>
+    {
+      actions !== undefined && actions.length > 0 && (
+        <div class="manifest-actions" data-reveal>
+          {actions.map((action) => (
+            <a
+              class:list={['endcap-link', action.solid === true && 'endcap-link--solid']}
+              href={action.href}
+            >
+              {action.label}
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </div>
+  <p class="sr-only">{summary}</p>
+</section>

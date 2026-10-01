@@ -1,6 +1,12 @@
 # STITCH_PROMPT.md — Stitch AI Design Prompt for ORBITAL
 
-**Source of truth:** `docs/DESIGN.md` (art direction + five-act structure). Nothing here overrides it.
+**Status: superseded.** These prompts generate the retired five-act concept
+(spacecraft, booking, Mars-as-destination). The live structure is the
+fourteen-stage Solar System Journey in `Orbital Docs/DESIGN.md` v2.0 and
+`Orbital Docs/PRD.md` v2.0. Kept for the visual-language exploration only: the
+type hierarchy, the ember action accent and the scrim rules still apply.
+
+**Source of truth (historical):** `docs/DESIGN.md` v1.0 (art direction + five-act structure).
 **Purpose:** Ready-to-paste prompts for Stitch AI to explore the visual design of the ORBITAL landing page.
 **Legend:** 🔶 sample copy invented for design exploration only — final copy is a content decision (PRD).
 

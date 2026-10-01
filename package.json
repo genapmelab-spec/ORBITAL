@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "astro dev",
     "check": "astro check",
+    "check:layout": "esbuild src/three/anchors.ts --bundle --format=esm --platform=node --outfile=node_modules/.cache/orbital/anchors.mjs --log-level=warning && node tools/check-layout.mjs",
     "build": "astro build",
     "preview": "astro preview"
   },

@@ -1,0 +1,16 @@
+---
+/**
+ * World layer. The canvas is decorative — aria-hidden, no content lives in it.
+ * The fallback layer below it is a pure CSS sky for devices without WebGL, and
+ * the veil keeps the first frame hidden until the scene has actually drawn.
+ */
+---
+
+<canvas class="scene-canvas" data-scene-canvas aria-hidden="true"></canvas>
+<div class="scene-fallback" aria-hidden="true"></div>
+<div class="grain" aria-hidden="true"></div>
+<div class="scene-veil" data-scene-veil aria-hidden="true"></div>
+
+<script>
+  import '../scripts/scene';
+</script>

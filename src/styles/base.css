@@ -12,6 +12,10 @@
 html {
   color-scheme: dark;
   scrollbar-color: var(--orb-ember) var(--orb-void);
+  /* Journey rails are navigable: anchors glide, and land clear of the chrome. */
+  scroll-behavior: smooth;
+  scroll-padding-top: 4.5rem;
+  scrollbar-width: thin;
 }
 
 html,

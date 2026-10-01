@@ -1,15 +1,22 @@
 # AGENTS.md — Implementation Instructions for AI Coding Agents
 
 ## Project Summary
-Premium 3D space landing page "ORBITAL": one persistent Three.js scene, camera
-flight driven by scroll, five acts (LEAVE/CROSS/ARRIVE/FLY/SECURE), DOM content
-inside a cinematic world. Sources of truth: DESIGN.md (visual/experience),
-PRD.md (scope/acceptance). If code conflicts with DESIGN.md, DESIGN.md wins.
+Cinematic landing page "ORBITAL — A Solar System Journey": one persistent
+Three.js scene, one camera driven by scroll, one fixed journey order of fourteen
+stages (EARTH → MOON → MERCURY → VENUS → EARTH ORBIT → MARS → ASTEROID BELT →
+JUPITER → SATURN → URANUS → NEPTUNE → OUTER SOLAR SYSTEM → SOLAR SYSTEM OVERVIEW
+→ THE SUN), with planets as landmarks, interstitial moments between them, an
+opening and a real ending. `src/content/journey.ts` is the single source of truth
+for that order: camera keys, navigation, sections, copy weight and the scroll
+parameter all derive from it, and it is never reshuffled.
+Sources of truth: DESIGN.md (visual/experience), PRD.md (scope/acceptance).
+If code conflicts with DESIGN.md, DESIGN.md wins.
 
 ## Tech Stack (chosen — do not add without updating this file + PRD)
 - Astro (static output) + Tailwind CSS (tokens via CSS custom properties)
-- Three.js (vanilla, TypeScript) in ONE Astro island (`client:load`) — React/R3F
-  deliberately NOT used: no framework runtime needed for one scene
+- Three.js (vanilla, TypeScript), lazy-loaded with dynamic `import()` after first
+  paint — React/R3F deliberately NOT used: no framework runtime needed for one
+  scene (see the deviations note below on why there is no island)
 - GSAP + ScrollTrigger (scroll choreography + DOM reveals)
 - No UI kits, no jQuery, no animation libs beyond GSAP, no CMS
 
@@ -40,16 +47,24 @@ public/              (favicon, og image, fallback hero frame)
 
 ## 3D & Animation Implementation Guide
 - ONE WebGLRenderer, ONE RAF loop total; render only when visible/tab active.
-- Scroll: ScrollTrigger tracks page progress 0..1 → cameraPath.getPointAt(p)
-  + per-act state; DOM reveals are separate, cheap, once-per-pass.
+- Layout contract: `three/anchors.ts` owns every position, radius, light and
+  camera composition; `three/cameraPath.ts` only interpolates between the keys it
+  resolves. Objects and camera can therefore never disagree about the world.
+- Scroll: each section declares the journey parameter it sits on (`data-param`,
+  0 at stage 01 → 13 at stage 14). The controller interpolates between
+  neighbouring sections, so an interstitial moment can live between two stages
+  while the parameter stays non-decreasing. DOM reveals are separate, cheap,
+  once-per-pass.
 - Starfield velocity stretch: uniform driven by scroll velocity, clamped.
-- Adaptive quality: start tier by (deviceMemory, cores, DPR); FPS probe first
-  3s may downgrade (particles → DPR → shadows); NEVER downgrade narrative
-  (camera path stays).
-- prefers-reduced-motion: skip path animation; cross-act = opacity fades;
-  static starfield; skip preloader animation.
-- No-3D fallback: if WebGL unavailable/failed → add `no-webgl` class; CSS
-  starfield + static hero frame render instead; DOM content identical.
+- Adaptive quality: start tier by capability probe (cores, viewport, DPR,
+  software renderer); FPS probe may downgrade (particles → DPR → atmosphere
+  shells); NEVER downgrade narrative (camera path stays).
+- prefers-reduced-motion: the camera rests on whole stage keys and cuts between
+  compositions instead of flying; no preloader animation; all content visible.
+- No-3D fallback: if WebGL is unavailable or the scene fails → `no-webgl` class;
+  a pure CSS starfield renders instead; DOM content identical.
+- Shaders are GLSL strings in `three/shaders/*.ts` (no .glsl loader, no
+textures). Analytic sun lighting in-shader: no Three.js light objects, no maps.
 
 ## Responsive Rules
 Breakpoints 640/768/1024/1440 (Tailwind defaults ok). Mobile: skybox tier or
@@ -62,51 +77,63 @@ lazy-inits after first paint; textures KTX2; draw calls <60/<30; tris <150k;
 DPR ≤2. Test on mid-range Android; measure, don't assume.
 
 ## Accessibility Guidelines
-Scene canvas aria-hidden + visually-hidden per-act summary; all content DOM;
-AA contrast with scrims over bright frames; visible focus (solar token);
-reduced-motion hard requirement (DESIGN.md §9); form errors aria-describedby.
+Scene canvas aria-hidden + visually-hidden per-stage summary (every stage and
+moment, including the silent ones); all content DOM; AA contrast with scrims over
+bright frames, and compositions authored so centred captions never sit on the
+subject; visible focus (solar token); reduced-motion hard requirement
+(DESIGN.md §9); 
+no content exists only inside the canvas.
 
-## Development & Build Commands (proposed scaffold)
-npm run dev        # astro dev
-npm run build      # astro build (static)
-npm run preview    # astro preview
-npx astro check    # type/diagnostics
-(Exact scripts confirmed after scaffold — do not invent others.)
+## Development & Build Commands (as built)
+npm run dev          # astro dev
+npm run check        # astro check (types + diagnostics)
+npm run build        # astro build (static)
+npm run preview      # astro preview
+npm run check:layout # bundles the layout contract and asserts framing,
+                     # collisions, path continuity and corona reach
+Do not invent other scripts. `check:layout` reads the real `anchors.ts`, so it
+cannot drift from the scene the way a hand-copied table would.
 
 ## Testing & Validation Procedure
-1. npm run build → zero errors/warnings.
-2. Console clean on preview (all breakpoints).
-3. Functional: anchors, nav CTA, form validation/success, no-3D fallback.
-4. Visual: acts vs DESIGN.md §5; no repeated layout patterns; type overlap OK.
-5. Responsive sweep 320→1920: no overflow, no CLS spikes.
-6. A11y: axe scan; keyboard pass; reduced-motion pass.
+1. npm run build → zero errors/warnings; `npx astro check` clean.
+2. Console clean on preview (all breakpoints); no WebGL shader errors.
+3. Functional: rail + sheet anchors, deep links to any stage, no-3D fallback,
+   journey order intact in the DOM.
+4. Layout: verify camera keys against the layout contract — subject in frame,
+   caption clear of the subject, no key inside a body, no interpolation grazing
+   a body between keys.
+5. Responsive sweep 320→1920: no overflow, no CLS spikes, caption placement and
+   camera framing switch together at the 1024px re-choreography threshold.
+6. A11y: axe scan; keyboard pass; reduced-motion pass (one composition per stage).
 7. Perf: Lighthouse mobile ≥ PRD targets; FPS probe on mid-range Android.
 8. Fail any budget → apply adaptive-quality fixes before code polish.
 
 ## Delivered Structure (as built — keep in sync)
 ```
 src/
-  pages/index.astro          5 acts, one page
+  pages/index.astro          one page: opening + stages + moments + ending
   layouts/Base.astro         document shell + pre-paint capability probe
-  content/mission.ts         all page copy (typed, no placeholder text)
-  components/               Scene, Nav, StageIndicator, Preloader,
-                            ActSection, BookingForm, Footer
+  content/journey.ts         JOURNEY (14-stage spine) + EXPERIENCE (page order)
+  components/                Scene, TopBar (rail), JourneySheet, Preloader,
+                             Prologue, Stage, Moment, Manifest (why-this-journey),
+                             Endcap (epilogue + log)
   three/
     OrbitaScene.ts           ONE renderer / ONE RAF loop / dispose()
-    cameraPath.ts            9 Catmull-Rom keys, act anchors, reduced framing
-    quality.ts               capability probe + FPS governor (drawRange only)
-    world.ts                 layout contract (planet + star + craft constants)
-    anchors.ts               DOM labels projected from real 3D subjects
+    cameraPath.ts            eased-linear keys, reduced framing, re-layout
+    anchors.ts               LAYOUT CONTRACT: scale compression, body table,
+                             per-stage camera compositions, portrait bias
+    quality.ts               profiles + FPS governor (counts/DPR, never story)
+    world.ts                 assembles the graph from anchors, applies tiers
     types.ts                 SceneObject create/update/dispose contract
-    objects/                 starfield, earth, mars, craft, exhaust,
-                             planet (interface), halo (procedural env glow)
-    shaders/                 common.glsl, atmosphere.glsl, surface.glsl
+    random.ts                seeded RNG (reproducible starfield and rubble)
+    objects/                 starfield, dust, planet, sunBody, belt, orbitLines
+    shaders/                 common, surface, atmosphere, sun, ring, points, rock
   scripts/
     scene.ts                 runtime entry: boot behaviour, then lazy three
-    scrollController.ts      per-act scroll → camera + stage log + rail
-    motion.ts                preloader, hero load-in, reveals, timeline rail
-    nav.ts, form.ts          chrome + client-side validation
-  styles/                    tokens / base / cosmic (+ global.css entry)
+    scrollController.ts      section params → journey parameter → camera
+    motion.ts                preloader, opening load-in, per-section reveals
+    nav.ts                   rail active state, mobile sheet, anchor focus
+  styles/                    tokens / base / journey (+ global.css entry)
 ```
 
 Deviations from the earlier sketch, all deliberate:
@@ -115,20 +142,29 @@ Deviations from the earlier sketch, all deliberate:
    `<script>` in an `.astro` component, which Astro bundles once, hoisting it
    out of the critical path. `Scene.astro` is that one entry, and it
    `import()`s three.js **after first paint** so the LCP element is always DOM.
-2. **`src/content/mission.ts` added** so components stay presentational and no
-   copy is duplicated across acts.
-3. **Extra scene modules** — `world.ts` (single layout contract, so objects and
-   the camera path cannot drift apart), `anchors.ts` (the 3D→DOM projection
-   bridge), `halo.ts` (procedural limb glow + engine glow), `planet.ts`
-   (shared interface).
-4. **Custom cursor cut** (DESIGN.md §6 🔶) — no narrative gain, fights form
-   input. Pointer tilt ships on desktop only, per capability probe.
-5. **Texture-free.** Every visual is shader, primitive or runtime canvas: no
-   NASA/Solar System Scope licensing dependency and no asset bytes.
+2. **`src/content/journey.ts` added** so components stay presentational and no
+   copy is duplicated. It holds two layers: `JOURNEY` (the fixed 14-stage spine
+   the camera and the rail both read) and   `EXPERIENCE` (the page order, with the
+   opening, the interstitial moments, the why-this-journey manifesto and the
+   ending).
+3. **Extra scene modules** — `anchors.ts` (the layout contract: geometry, light
+   and camera compositions in one place), `world.ts` (assembly + tier
+   application), `random.ts` (seeded layouts so the scene is identical on every
+   reload).
+4. **Custom cursor and pointer tilt cut** — no narrative gain without a form,
+   and pointer parallax fights a camera that is already moving.
+5. **Texture-free.** Every visual is shader or primitive: no NASA/Solar System
+   Scope licensing dependency and no asset bytes (DESIGN.md §10).
+6. **No booking form.** The old concept's conversion funnel is gone (PRD v2.0);
+   the page's actions are navigation inside the experience, and the ending
+   carries a final statement plus an expedition log instead of a form.
 
 ## Prohibitions (AI agents MUST NOT)
 - Add libraries/features not in Tech Stack (no React, no R3F, no postprocessing
   libs unless a PRD requirement demands it — update docs first if ever).
+- Reorder the journey, or add a stage that is not in `JOURNEY`. New beats belong
+  as interstitials in `EXPERIENCE`, between two stages, never in the spine.
+- Add texture, model or photo assets. The scene is procedural by contract.
 - Put critical content only inside the canvas.
 - Animate layout properties in DOM; rebuild geometry per frame in WebGL.
 - Create multiple renderers/loops; leave undisposed GPU resources.

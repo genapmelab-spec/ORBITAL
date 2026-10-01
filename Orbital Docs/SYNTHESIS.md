@@ -1,8 +1,16 @@
 # SYNTHESIS.md — How five references became one ORBITAL system
 
-Status: built. Every decision below is implemented; each row names the artifact
-that carries it. Reference images are inspiration only — no brand, layout,
-artwork or logo was reproduced.
+Status: **historical reference — the mechanism research that shaped ORBITAL's
+art direction. The five-act structure it describes was replaced by the
+fourteen-stage Solar System Journey (DESIGN.md v2.0).** Read it for *why* the
+type system, the mission-log chrome and the negative space work; do not read it
+for structure. The reference-derived mechanisms it argues for — promise-first
+opening, editorial restraint, mono telemetry, one structural spine — all survive
+in the current build.
+
+Every decision below was implemented at the time; each row names the artifact that
+carried it. Reference images are inspiration only — no brand, layout, artwork or
+logo was reproduced.
 
 ---
 

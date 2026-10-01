@@ -1,19 +1,36 @@
-# DESIGN.md — SPACE: Premium 3D Landing Page
-Status: Draft v1.0 · Legend: ✅ confirmed · 🔶 recommendation (final at design review)
+# DESIGN.md — ORBITAL: A Solar System Journey
+Status: v2.0 · Legend: ✅ confirmed · 🔶 recommendation (final at design review)
+Supersedes v1.0 (five acts, spacecraft, booking). Tokens, motion character,
+a11y and performance principles are unchanged.
 
 ## 1. Creative Concept — "ORBITAL"
-The page IS a spaceflight, not a page about space. One persistent WebGL scene,
-one camera, one scroll. Five acts along a camera path:
-LEAVE (Earth) → CROSS (the void) → ARRIVE (Mars) → FLY (spacecraft) → SECURE (booking).
-Content is DOM floating inside the world at different depths; nothing is a bolted-on
-section stack.
+The page IS the journey, not a page about the Solar System. One persistent WebGL
+scene, one camera, one scroll, fourteen stages, no cuts:
+EARTH → MOON → MERCURY → VENUS → EARTH ORBIT → MARS → ASTEROID BELT → JUPITER →
+SATURN → URANUS → NEPTUNE → OUTER SOLAR SYSTEM → SOLAR SYSTEM OVERVIEW → THE SUN.
 
-Why: camera-driven composition cannot read as a template; one scene is cheaper than
-five effects; every act gets a distinct spatial composition for free; storytelling
-ends naturally at the CTA.
+That order is the spine of the whole project: it drives the camera path, the
+scroll parameter, the navigation rail, the copy, the reveals and the progress
+bar. It is defined once (`src/content/journey.ts`) and nothing reshuffles it.
+
+Around the spine the page is a landing page, not a catalogue: an **opening**
+that sells the trip, **planets as landmarks** inside the journey (they are
+places the camera passes, not pages), **moments between them** — departure,
+scale, silence, orbital time — a **manifesto** (why this journey: three numbered
+editorial lines, the page's one value-proposition section, never a feature grid),
+and a **real ending** that pays the journey off with a final statement, an
+expedition log and the ways back in.
+
+Why: camera-driven composition cannot read as a template; planets stop being
+cards and become environment; the moments give the page rhythm and meaning
+beyond "and then we saw another planet"; the ending means the experience closes
+instead of stopping.
 
 ## 2. Art Direction & Mood
 - Feeling: cinematic, vast, quiet, confident. "A film you can scroll."
+- Emphasis: SCALE IS THE STORY. Distance, depth, negative space, and the moment
+  a planet you have been standing next to becomes a dot. Text serves atmosphere;
+  it never competes with the frame.
 - Lighting: single key light (sun), deep black shadows, thin atmosphere rim light,
   subtle bloom; very subtle film grain to unify CGI + type.
 - Motion character: weightless — long ease-outs, slow drift, nothing bounces.
@@ -35,36 +52,73 @@ Signature: display headlines may overlap/intersect the 3D subject.
 Eyebrows: uppercase, 0.16em tracking, mission-log style ("LOG 003 · ARRIVAL").
 
 ## 4. 3D Direction
-One persistent scene: Earth (shader atmosphere, slow rotation) · GPU starfield in 3
-parallax depths (starfield subtly STRETCHES with scroll velocity — signature
-interaction ✅) · Mars (displaced sphere + noise surface, dusty rim) · one stylized
-hero spacecraft (~15–30k tris, KTX2) · additive exhaust/dust particles only at
-burn/dock moments · thin holo ring/line elements presenting REAL content (stage
-numbers, stats) in-scene or as DOM overlays anchored to 3D.
+One persistent scene, entirely procedural — no textures, no photographs, no
+external assets:
+- Twelve bodies (Sun, Moon, Ceres, Pluto and the eight planets), each a shader:
+  latitude-banded surface noise, a single analytic Sun light, and a compressed
+  inverse-square falloff so Neptune is visibly dimmer than Mercury.
+- Atmosphere shells: additive fresnel rims, sun-facing, on Earth, Venus, Mars,
+  Mercury (thin and hot), the giants.
+- Ring systems for Saturn and Uranus (radial banding, one Cassini-style gap, and
+  the planet's own analytic shadow across the rings — no shadow maps).
+- Asteroid belt and Kuiper belt as two instanced draws; Ceres and Pluto are the
+  named dwarf planets inside them.
+- Orbit lines whose opacity is scripted by the journey: invisible at close range,
+  revealed as the camera pulls out until the overview shows a system.
+- GPU starfield in three shells with per-star twinkle, and a camera-relative dust
+  field that wraps around the viewer so travel reads from parallax.
+- The Sun: granulated photosphere with limb brightening, plus a two-layer corona
+  that only blooms while the Sun is actually in frame.
 3D is NOT for: decoration, random particles behind text, wallpaper replacement.
 
-Camera path (the spine):
-  LEAVE: close on Earth horizon, pull back+up · CROSS: wide drift, craft appears
-  distant · ARRIVE: Mars grows to fill frame · FLY: alongside the craft ·
-  SECURE: camera rests behind the booking panel; world recedes calm.
+Camera path (the spine), one key per stage, eased-linear between keys:
+  EARTH close and personal → MOON with Earth behind → MERCURY in extreme
+  proximity → VENUS from above the clouds → EARTH ORBIT (pale dot, orbit lines
+  appear) → MARS → INSIDE the belt with a wide lens → JUPITER overflowing the
+  frame → SATURN above the ring plane → URANUS tilted and isolated → NEPTUNE
+  dim and deep → OUTER (looking back across the system) → OVERVIEW (the whole
+  disc in one frame) → THE SUN (a dive straight down the overview axis).
+Easing is deliberately eased-linear rather than splined: the journey moves from a
+1.5-unit fly-by to a 440-unit dive, and a spline through keys that unevenly
+spaced overshoots the Solar System. Zero velocity at every key gives the rhythm:
+arrive, settle, depart.
 
 ## 5. Page Structure & Storytelling
-1 LEAVE  Hero: awe+concept in 5s, first CTA. Full-viewport, headline low-left
-         overlapping horizon. Nav transparent.
-2 CROSS  Story/credibility: deep starfield, distant craft. Experimental editorial:
-         asymmetric type, large numerals 01/02/03, varied alignment — NOT a card row.
-3 ARRIVE Destinations/Mars: planet fills frame; big stats (distance, travel time)
-         as holo labels; right-aligned text.
-4 FLY    Technology: hero craft side profile, exhaust; overlapping type; specs as
-         mono telemetry table; pointer-tilt parallax on craft.
-5 SECURE Booking + footer: calm receding world; single focused form panel; quiet footer.
-Nav: fixed, minimal, current act highlighted; logo left, anchors + CTA right.
-Pinned "stage indicator" (01 — LEAVE …) = mission log ✅ signature element.
-No hard section boundaries: in-scene haze blends acts.
+Every section declares the camera parameter it sits on, so the page can have
+interstitials without the camera ever moving backwards.
+
+1 PROLOGUE   The idea, one line of promise, and the way in. Sits on the Earth
+             composition, so the concept arrives as a place, not a banner.
+2 THE JOURNEY  Fourteen stages. Each stage is a landmark, and each declares how
+             much it speaks:
+               landmark — number, name, one line, telemetry (Earth, Mercury,
+                          Jupiter, Saturn, the belt, the overview, the Sun)
+               minimal  — name and one line (Moon, Earth Orbit, Mars, Neptune,
+                          the outer system)
+               silent   — no caption at all; the visual is the content
+                          (Venus, Uranus)
+3 MOMENTS    Six beats between stages, shorter than a stage (78svh): departure,
+             the inner system, THE SCALE OF IT ALL, silence, orbital motion, a
+             scale comparison. These carry the landing-page meaning — scale,
+             emptiness, time — instead of another planet introduction.
+4 EPILOGUE   Final statement, the expedition log (all fourteen stages with their
+             distances, each one a deep link), the ways back in, and an honest
+             colophon. The experience ends; it does not just stop.
+Nav: ONE system — a floating rail of fourteen numbers, split at the asteroid belt
+between the inner system and the giants, with a hairline journey-progress line
+across the top. Below 48rem the same list becomes a full-screen sheet. No navbar
+plus sidebar, no dashboard.
+No hard section boundaries: the scene runs continuously behind transparent,
+full-height stage windows.
 
 ## 6. Animation & Interaction
-- Scroll = master driver: progress → camera path + scene state (GSAP ScrollTrigger).
-- Camera: slow, eased, always forward; never hard cuts.
+- Scroll = master driver: progress is one number (0 → 13) derived from where each
+  section sits on screen; it feeds the camera, the progress rail and the active
+  stage (GSAP ScrollTrigger for the scroll bookkeeping only).
+- Camera: slow, eased, always forward; never hard cuts. Velocity is zero at every
+  stage key, so each stop is a settle rather than a pass-through.
+- Moments are paced differently from stages: shorter sections, quieter type, less
+  to read — the rhythm of a film, not a metronome.
 - Text: line rise+fade, staggered, once per pass. In-scene: rotation, twinkle,
   drift, exhaust — alive but subtle.
 - Hover: ember fill sweep + lift (buttons); craft tilt with pointer (FLY).
@@ -81,10 +135,14 @@ No hard section boundaries: in-scene haze blends acts.
 
 ## 8. Responsive
 Mobile <768: same narrative order, vertical composition; 3D in "skybox mode"
-(lighter render or static hero frame + CSS starfield), stage indicator kept.
-Tablet: full scene, reduced particles, no pointer-tilt. Desktop: full experience.
-Tap targets ≥44px; overlay menu; safe-area padding. Decide 3D tier by device class
-+ runtime FPS probe — never user-agent sniffing. 🔶
+(lighter render or static frame + CSS starfield), the rail becomes a sheet.
+Tablet: full scene, reduced particles. Desktop: full experience.
+Re-choreography, not shrinking: at ≤1024px — or any near-square viewport — the
+camera pulls back slightly, lifts the subject above centre and the caption drops
+to the bottom of the frame, clear of it. The camera layout and the caption
+placement use the same threshold, so they can never disagree.
+Tap targets ≥44px; safe-area padding. Decide tier by capability + runtime FPS
+probe — never user-agent sniffing. 🔶
 
 ## 9. Accessibility (visual)
 AA contrast everywhere; prefers-reduced-motion → camera path collapses to gentle
@@ -93,11 +151,14 @@ Scene aria-hidden + per-act text summary; full keyboard traversal, visible solar
 focus outline; ALL critical content lives in DOM, never only inside the scene.
 
 ## 10. Assets
-Planets: shader-based + licensed/CC0 textures (NASA-derived, Solar System Scope 🔶;
-licensing confirmed before build). Spacecraft: one low-poly hero mesh, KTX2;
-fallback if budget tight: 2.5D layered plates with baked light. Starfield:
-procedural GPU points (zero texture cost). Unified grade (cool shadows / warm
-highlights) across WebGL + DOM imagery. No stock space wallpaper pasted as background.
+**Texture-free, and it stays that way.** Every visual is a shader, a primitive or
+runtime geometry: planet surfaces, atmospheres, rings, belts, stars, dust and the
+Sun's corona are all procedural. No textures, no models, no photographs, no
+licensing surface, no asset bytes. Distances and radii are compressed on purpose
+(log scale for distance, power scale for radius) and the compression is documented
+in `src/three/anchors.ts`, which is the layout contract for the whole scene.
+Unified grade (cool shadows / warm highlights) with ACES tone mapping. No stock
+space wallpaper pasted as background.
 
 ## 11. Performance Principles
 ONE WebGL context + ONE RAF loop for scene and scroll-sync. Draw calls <60 desktop /

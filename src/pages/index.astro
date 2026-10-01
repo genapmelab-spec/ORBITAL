@@ -1,0 +1,104 @@
+---
+import Base from '../layouts/Base.astro';
+import Endcap from '../components/Endcap.astro';
+import JourneySheet from '../components/JourneySheet.astro';
+import Manifest from '../components/Manifest.astro';
+import Moment from '../components/Moment.astro';
+import Preloader from '../components/Preloader.astro';
+import Prologue from '../components/Prologue.astro';
+import Scene from '../components/Scene.astro';
+import Stage from '../components/Stage.astro';
+import TopBar from '../components/TopBar.astro';
+import { EXPERIENCE, STAGE_BY_ID } from '../content/journey';
+
+/**
+ * One page, one camera, fourteen stages — plus the opening, the moments between
+ * them and a real ending. Order and copy come from EXPERIENCE; the camera
+ * parameter each section sits on comes from the same entry, so the page and the
+ * flight can never disagree.
+ */
+const prologue = EXPERIENCE.find((entry) => entry.kind === 'prologue');
+const epilogue = EXPERIENCE.find((entry) => entry.kind === 'epilogue');
+---
+
+<Base
+  title="ORBITAL — A journey through the Solar System"
+  description="A cinematic scroll from Earth to the Sun: fourteen stages through the entire Solar System, drawn in real time."
+>
+  <Preloader />
+  <Scene />
+  <TopBar />
+  <JourneySheet />
+
+  <main class="journey" id="journey">
+    {
+      prologue !== undefined && prologue.kind === 'prologue' && (
+        <Prologue
+          id={prologue.id}
+          kicker={prologue.kicker}
+          title={prologue.name ?? ''}
+          statement={prologue.statement}
+          meta={prologue.meta ?? []}
+          note={prologue.note ?? ''}
+          actions={prologue.actions ?? []}
+          summary={prologue.summary}
+          param={prologue.param}
+        />
+      )
+    }
+
+    {
+      EXPERIENCE.map((entry) => {
+        if (entry.kind === 'stage') {
+          return <Stage stage={STAGE_BY_ID[entry.stageId]} param={entry.param} />;
+        }
+        if (entry.kind === 'moment') {
+          return (
+            <Moment
+              id={entry.id}
+              kicker={entry.kicker}
+              statement={entry.statement}
+              meta={entry.meta}
+              captionPos={entry.captionPos}
+              quiet={entry.quiet}
+              actions={entry.actions}
+              param={entry.param}
+              summary={entry.summary}
+            />
+          );
+        }
+        if (entry.kind === 'manifest') {
+          return (
+            <Manifest
+              id={entry.id}
+              kicker={entry.kicker}
+              statement={entry.statement}
+              points={entry.points}
+              actions={entry.actions}
+              captionPos={entry.captionPos}
+              param={entry.param}
+              summary={entry.summary}
+            />
+          );
+        }
+        return null;
+      })
+    }
+
+    {
+      epilogue !== undefined && epilogue.kind === 'epilogue' && (
+        <Endcap
+          id={epilogue.id}
+          kicker={epilogue.kicker}
+          title={epilogue.name ?? ''}
+          statement={epilogue.statement}
+          meta={epilogue.meta ?? []}
+          note={epilogue.note ?? ''}
+          actions={epilogue.actions ?? []}
+          summary={epilogue.summary}
+          param={epilogue.param}
+        />
+      )
+    }
+  </main>
+</Base>

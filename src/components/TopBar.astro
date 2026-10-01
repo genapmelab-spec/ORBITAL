@@ -1,0 +1,73 @@
+---
+import { JOURNEY } from '../content/journey';
+
+/**
+ * The one and only navigation. Numbers, not a menu tree: the rail shows where
+ * you are in the journey, split at the asteroid belt between the inner system
+ * and the giants. Below 48rem the same list becomes the sheet in
+ * JourneySheet.astro — one system, two dressings, never two navigations.
+ */
+
+/** Stage 08 (Jupiter) opens the outer system. */
+const OUTER_SYSTEM_START = 8;
+const inner = JOURNEY.filter((stage) => stage.index < OUTER_SYSTEM_START);
+const outer = JOURNEY.filter((stage) => stage.index >= OUTER_SYSTEM_START);
+const pad = (value: number): string => String(value).padStart(2, '0');
+---
+
+<header class="chrome" data-chrome>
+  <a class="brand" href="#earth">
+    <span class="brand-word">ORBITAL</span>
+    <span class="brand-tag u-mono">Solar System Journey</span>
+  </a>
+
+  <nav class="journey-nav" aria-label="Journey stages">
+    <ul class="journey-nav-list">
+      {
+        inner.map((stage) => (
+          <li>
+            <a
+              class="journey-nav-link"
+              data-stage-link
+              href={`#${stage.id}`}
+              aria-label={`Stage ${pad(stage.index)} — ${stage.name}`}
+              title={stage.name}
+            >
+              {pad(stage.index)}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+    <span class="journey-nav-progress" aria-hidden="true"></span>
+    <ul class="journey-nav-list">
+      {
+        outer.map((stage) => (
+          <li>
+            <a
+              class="journey-nav-link"
+              data-stage-link
+              href={`#${stage.id}`}
+              aria-label={`Stage ${pad(stage.index)} — ${stage.name}`}
+              title={stage.name}
+            >
+              {pad(stage.index)}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </nav>
+
+  <button
+    class="journey-menu-btn"
+    type="button"
+    data-journey-menu
+    aria-expanded="false"
+    aria-controls="journey-sheet"
+  >
+    Journey
+  </button>
+</header>
+
+<div class="journey-progress" aria-hidden="true"></div>

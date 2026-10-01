@@ -1,0 +1,25 @@
+---
+import { JOURNEY } from '../content/journey';
+
+/**
+ * The journey rail as a full-screen sheet, for touch widths. Same links, same
+ * order, same single source — the sheet is the rail at a different size.
+ */
+const pad = (value: number): string => String(value).padStart(2, '0');
+---
+
+<div class="journey-sheet" id="journey-sheet" data-journey-sheet aria-label="Journey stages">
+  <button class="journey-sheet-close" type="button" data-journey-close>Close</button>
+  <ul class="journey-sheet-list">
+    {
+      JOURNEY.map((stage) => (
+        <li>
+          <a class="journey-sheet-link" data-stage-link href={`#${stage.id}`}>
+            <span class="u-mono">{pad(stage.index)}</span>
+            <span class="sheet-name">{stage.name}</span>
+          </a>
+        </li>
+      ))
+    }
+  </ul>
+</div>

@@ -1,0 +1,63 @@
+---
+import type { SectionAction } from '../content/journey';
+
+/**
+ * Opening. The page's one conventional landing-page moment, and it earns it:
+ * the hook, one line of promise, and the way in. It sits on the Earth
+ * composition, so the concept arrives as a place rather than a banner.
+ * The title may carry a single <em> for the ember accent.
+ */
+export interface Props {
+  id: string;
+  kicker: string;
+  title: string;
+  statement: string;
+  meta: readonly string[];
+  note: string;
+  actions: readonly SectionAction[];
+  summary: string;
+  param: number;
+}
+
+const { id, kicker, title, statement, meta, note, actions, summary, param } = Astro.props;
+---
+
+<section
+  class="stage stage--hero"
+  id={id}
+  data-section
+  data-kind="prologue"
+  data-prologue
+  data-param={param}
+  data-caption-pos="left"
+  aria-label={kicker}
+>
+  <div class="hero-body">
+    <p class="u-mono" data-reveal>{kicker}</p>
+    <h1 class="hero-title" data-reveal set:html={title} />
+    <p class="hero-lede" data-reveal>{statement}</p>
+    <ul class="stage-meta u-mono" data-reveal>
+      {meta.map((item) => <li>{item}</li>)}
+    </ul>
+    <div class="prologue-actions" data-reveal>
+      {
+        actions.map((action) => (
+          <a
+            class:list={['endcap-link', action.solid === true && 'endcap-link--solid']}
+            href={action.href}
+          >
+            {action.label}
+          </a>
+        ))
+      }
+    </div>
+    <p class="u-mono prologue-note" data-reveal>{note}</p>
+  </div>
+  <div class="hero-scrollcue" aria-hidden="true">
+    <span class="u-mono">Enter</span>
+    <span class="hero-scrollcue-track">
+      <span class="hero-scrollcue-thumb" />
+    </span>
+  </div>
+  <p class="sr-only">{summary}</p>
+</section>

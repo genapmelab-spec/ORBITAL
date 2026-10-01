@@ -1,0 +1,66 @@
+---
+import type { SectionAction } from '../content/journey';
+
+/**
+ * A moment between stages. Not a planet, not a section of a catalogue: a beat
+ * of atmosphere — departure, scale, silence, orbital time — whose only job is
+ * to make the journey feel continuous and enormous. Shorter than a stage, so
+ * the page has a rhythm instead of a metronome. A moment may carry one action:
+ * the rare mid-journey conversion beat, framed as forward motion.
+ */
+export interface Props {
+  id: string;
+  kicker: string;
+  statement: string;
+  meta?: readonly string[];
+  captionPos: 'left' | 'right' | 'center';
+  quiet?: boolean;
+  actions?: readonly SectionAction[];
+  param: number;
+  summary: string;
+}
+
+const { id, kicker, statement, meta, captionPos, quiet = false, actions, param, summary } = Astro.props;
+---
+
+<section
+  class="stage stage--moment"
+  id={id}
+  data-section
+  data-kind="moment"
+  data-param={param}
+  data-caption-pos={captionPos}
+  aria-label={kicker}
+>
+  <div class="moment-caption" data-quiet={quiet ? 'true' : undefined}>
+    <p class="moment-kicker u-mono" data-reveal>
+      <span class="stage-rule" data-reveal-line />
+      <span>{kicker}</span>
+    </p>
+    <p class="moment-statement" data-reveal>{statement}</p>
+    {
+      meta !== undefined && meta.length > 0 && (
+        <ul class="stage-meta u-mono" data-reveal>
+          {meta.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      )
+    }
+    {
+      actions !== undefined && actions.length > 0 && (
+        <div class="moment-actions" data-reveal>
+          {actions.map((action) => (
+            <a
+              class:list={['endcap-link', action.solid === true && 'endcap-link--solid']}
+              href={action.href}
+            >
+              {action.label}
+            </a>
+          ))}
+        </div>
+      )
+    }
+  </div>
+  <p class="sr-only">{summary}</p>
+</section>

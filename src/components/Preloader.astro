@@ -1,0 +1,16 @@
+---
+/**
+ * Boot sequence. Deliberately contentless beyond the wordmark and the stage it
+ * is entering: this is the start of a flight, not a loading screen. motion.ts
+ * drives the bar and hides the whole block; the styles carry a CSS escape hatch
+ * in case scripts never arrive.
+ */
+---
+
+<div class="preloader" data-preloader>
+  <p class="preloader-word">ORBITAL</p>
+  <div class="preloader-track">
+    <div class="preloader-bar" data-preloader-bar></div>
+  </div>
+  <p class="u-mono" data-preloader-status>ENTERING EARTH</p>
+</div>

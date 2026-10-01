@@ -1,0 +1,81 @@
+---
+import { JOURNEY, type SectionAction } from '../content/journey';
+
+/**
+ * The final landing-page moment. Reaching the Sun must not be the end of the
+ * page: the experience closes with the payoff, real ways back in, the log of
+ * everything passed, and an honest colophon. Still minimal, still visual-first.
+ * The title may carry a single <em> for the ember accent.
+ */
+export interface Props {
+  id: string;
+  kicker: string;
+  title: string;
+  statement: string;
+  meta: readonly string[];
+  note: string;
+  actions: readonly SectionAction[];
+  summary: string;
+  param: number;
+}
+
+const { id, kicker, title, statement, meta, note, actions, summary, param } = Astro.props;
+
+const log = JOURNEY.map((stage) => ({
+  index: String(stage.index).padStart(2, '0'),
+  name: stage.name,
+  anchor: `#${stage.id}`,
+  value: stage.meta[0] ?? '',
+}));
+---
+
+<section
+  class="stage stage--epilogue"
+  id={id}
+  data-section
+  data-kind="epilogue"
+  data-param={param}
+  data-caption-pos="center"
+  aria-label="End of the journey"
+>
+  <div class="epilogue-body">
+    <p class="u-mono" data-reveal>{kicker}</p>
+    <h2 class="endcap-title" data-reveal set:html={title} />
+    <p class="stage-statement" data-reveal>{statement}</p>
+    <ul class="stage-meta u-mono" data-reveal>
+      {meta.map((item) => <li>{item}</li>)}
+    </ul>
+    <div class="endcap-actions" data-reveal>
+      {
+        actions.map((action) => (
+          <a
+            class:list={['endcap-link', action.solid === true && 'endcap-link--solid']}
+            href={action.href}
+          >
+            {action.label}
+          </a>
+        ))
+      }
+    </div>
+
+    <div class="log" data-reveal>
+      <p class="u-mono log-heading">Expedition log</p>
+      <ol class="log-list">
+        {
+          log.map((entry) => (
+            <li class="log-row">
+              <a class="log-link" href={entry.anchor}>
+                <span class="u-mono">{entry.index}</span>
+                <span class="log-name">{entry.name}</span>
+                <span class="u-mono log-value">{entry.value}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ol>
+    </div>
+
+    <p class="u-mono colophon-note" data-reveal>{note}</p>
+  </div>
+  <p class="sr-only">{summary}</p>
+</section>
