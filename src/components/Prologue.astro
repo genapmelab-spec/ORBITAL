@@ -2,10 +2,16 @@
 import type { SectionAction } from '../content/journey';
 
 /**
- * Opening. The page's one conventional landing-page moment, and it earns it:
- * the hook, one line of promise, and the way in. It sits on the Earth
- * composition, so the concept arrives as a place rather than a banner.
- * The title may carry a single <em> for the ember accent.
+ * Opening. Two phases over one camera move:
+ *
+ *   whisper — before the reveal: a line of mono type in the dark that answers
+ *   "where am I?" without naming a planet (the night side is still on screen);
+ *
+ *   hook    — after the Earth reveal is earned: the headline, the promise and
+ *   the way in. The DOM carries both from the start (scene.ts flips
+ *   `data-phase` as the reveal crosses its threshold), so a11y, reduced motion
+ *   and no-WebGL all see the complete story; the phase change is only which
+ *   layer is fading.
  */
 export interface Props {
   id: string;
@@ -16,10 +22,24 @@ export interface Props {
   note: string;
   actions: readonly SectionAction[];
   summary: string;
+  whisper: string;
+  whisperHint: string;
   param: number;
 }
 
-const { id, kicker, title, statement, meta, note, actions, summary, param } = Astro.props;
+const {
+  id,
+  kicker,
+  title,
+  statement,
+  meta,
+  note,
+  actions,
+  summary,
+  whisper,
+  whisperHint,
+  param,
+} = Astro.props;
 ---
 
 <section
@@ -28,30 +48,38 @@ const { id, kicker, title, statement, meta, note, actions, summary, param } = As
   data-section
   data-kind="prologue"
   data-prologue
+  data-phase="whisper"
   data-param={param}
   data-caption-pos="left"
   aria-label={kicker}
 >
-  <div class="hero-body">
-    <p class="u-mono" data-reveal>{kicker}</p>
-    <h1 class="hero-title" data-reveal set:html={title} />
-    <p class="hero-lede" data-reveal>{statement}</p>
-    <ul class="stage-meta u-mono" data-reveal>
-      {meta.map((item) => <li>{item}</li>)}
-    </ul>
-    <div class="prologue-actions" data-reveal>
-      {
-        actions.map((action) => (
-          <a
-            class:list={['endcap-link', action.solid === true && 'endcap-link--solid']}
-            href={action.href}
-          >
-            {action.label}
-          </a>
-        ))
-      }
+  <div class="hero-phases">
+    <div class="hero-phase hero-phase--whisper" data-phase-layer="whisper">
+      <p class="u-mono hero-whisper" data-reveal>{whisper}</p>
+      <p class="u-mono hero-whisper-hint" data-reveal>{whisperHint}</p>
     </div>
-    <p class="u-mono prologue-note" data-reveal>{note}</p>
+    <div class="hero-phase hero-phase--hook" data-phase-layer="hook" aria-hidden="true">
+      <p class="u-mono" data-reveal>{kicker}</p>
+      <h1 class="hero-title" data-reveal set:html={title} />
+      <p class="hero-lede" data-reveal>{statement}</p>
+      <ul class="stage-meta u-mono" data-reveal>
+        {meta.map((item) => <li>{item}</li>)}
+      </ul>
+      <div class="prologue-actions" data-reveal>
+        {
+          actions.map((action) => (
+            <a
+              class:list={['endcap-link', action.solid === true && 'endcap-link--solid']}
+              href={action.href}
+              tabindex={-1}
+            >
+              {action.label}
+            </a>
+          ))
+        }
+      </div>
+      <p class="u-mono prologue-note" data-reveal>{note}</p>
+    </div>
   </div>
   <div class="hero-scrollcue" aria-hidden="true">
     <span class="u-mono">Enter</span>

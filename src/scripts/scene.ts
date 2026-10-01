@@ -1,4 +1,5 @@
 import type { OrbitaSceneHandle } from '../three/OrbitaScene';
+import { OPENING_RISE_END } from '../content/journey';
 import type { ScrollControllerHandle } from './scrollController';
 import type { NavHandle } from './nav';
 
@@ -35,12 +36,38 @@ function openVeil(): void {
 async function main(): Promise<void> {
   const payload = readPayload();
   const canvas = document.querySelector<HTMLCanvasElement>('[data-scene-canvas]');
+  const prologue = document.querySelector<HTMLElement>('[data-prologue]');
+  let phase: 'whisper' | 'hook' = 'whisper';
+  let latestProgress = 0;
+  let destroyed = false;
+  /** The safety net must only fire when the real modules never arrived. */
+  let modulesReady = false;
+
+  /** The opening has two layers; exactly one may be visible and focusable. */
+  const setPhase = (next: 'whisper' | 'hook'): void => {
+    if (phase === next || prologue === null) return;
+    phase = next;
+    prologue.dataset.phase = next;
+    const activeLayer = next === 'hook' ? 'hook' : 'whisper';
+    const inactiveLayer = next === 'hook' ? 'whisper' : 'hook';
+    prologue.querySelector(`[data-phase-layer="${activeLayer}"]`)?.removeAttribute('aria-hidden');
+    prologue.querySelector(`[data-phase-layer="${inactiveLayer}"]`)?.setAttribute('aria-hidden', 'true');
+    prologue
+      .querySelectorAll<HTMLElement>(`[data-phase-layer="${inactiveLayer}"] a`)
+      .forEach((link) => link.setAttribute('tabindex', '-1'));
+    prologue
+      .querySelectorAll<HTMLElement>(`[data-phase-layer="${activeLayer}"] a`)
+      .forEach((link) => link.removeAttribute('tabindex'));
+  };
 
   const safety = window.setTimeout(() => {
     void import('./motion')
       .then((motion) => motion.revealAll())
       .catch(() => undefined);
     openVeil();
+    // Fallback shows the complete landing: the hook, not the whisper — but
+    // only if the real choreography never came up, never over a healthy boot.
+    if (!modulesReady) setPhase('hook');
   }, SAFETY_REVEAL_MS);
 
   const [motion, nav, scroll] = await Promise.all([
@@ -48,16 +75,18 @@ async function main(): Promise<void> {
     import('./nav'),
     import('./scrollController'),
   ]);
+  modulesReady = true;
 
   const navHandle: NavHandle = nav.initNav();
   let scene: OrbitaSceneHandle | null = null;
-  let latestProgress = 0;
-  let destroyed = false;
 
   const scrollController: ScrollControllerHandle = scroll.initScrollController({
     onProgress: (progress) => {
       latestProgress = progress;
       scene?.setProgress(progress);
+      // Opening choreography: the whisper holds the night side; the hook lands
+      // once the camera has crossed the reveal threshold (OPENING_RISE_END).
+      setPhase(progress >= OPENING_RISE_END ? 'hook' : 'whisper');
     },
     onStageChange: (id) => navHandle.setActiveStage(id),
   });
@@ -102,6 +131,8 @@ async function main(): Promise<void> {
   await motion.runPreloader(startScene(), { reducedMotion: payload.reducedMotion });
   window.clearTimeout(safety);
   motion.markChromeReady();
+  // The whisper staggers in on load; the hook pre-reveals behind it so the
+  // later phase flip is one clean fade instead of a staggered scramble.
   motion.revealPrologue({ reducedMotion: payload.reducedMotion });
   scrollController.refresh();
 }

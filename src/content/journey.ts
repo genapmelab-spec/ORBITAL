@@ -3,13 +3,21 @@
  *
  * Two layers, one order: * JOURNEY    the 14 stage spine. Camera keys, nav links and stage sections
  *              derive from this array and its order is never reshuffled.
- *   EXPERIENCE the page as a landing page: an opening that sells the trip, the
+ *   EXPERIENCE the page as a landing page: a prologue that starts in darkness
+ *              on the night side of the world (no planet in your face), the
  *              journey with planets as landmarks, interstitial moments between
- *              them (including one that states why the experience is worth
- *              taking), and a real ending that converts interest into action.
+ *              them — including one that states why the experience is worth
+ *              taking — and a real ending that converts interest into action.
  *              Every entry carries the camera parameter it sits on, so moments
  *              can live *between* two stages without ever pulling the camera
  *              sideways.
+ *
+ * CAMERA PARAM CONTRACT (shared with the three layer, but three-free):
+ *   param 0        the opening — night side of Earth, before the reveal
+ *   param i        stage i of JOURNEY (1..14)
+ *   LAST_STAGE_PARAM = JOURNEY.length = 14
+ * The scroll controller maps scroll to this space; the camera path has one key
+ * per integer plus the opening, so the page and the flight cannot disagree.
  */
 
 export type StageKind = 'planet' | 'moon' | 'belt' | 'transition' | 'sun' | 'overview';
@@ -251,13 +259,17 @@ export interface SectionPoint {
 
 interface InterstitialBase {
   readonly id: string;
-  /** Camera parameter this section sits on: 0 at stage 01, 13 at stage 14. */
+  /** Camera parameter this section sits on: 0 = the opening, i = stage i. */
   readonly param: number;
   readonly kicker: string;
   readonly statement: string;
   readonly captionPos: 'left' | 'right' | 'center';
   readonly quiet?: boolean;
   readonly note?: string;
+  /** Opening phase one: the whisper line shown before the Earth reveal. */
+  readonly whisper?: string;
+  /** Opening phase one: the scroll invitation under the whisper. */
+  readonly whisperHint?: string;
   readonly actions?: readonly SectionAction[];
   readonly summary: string;
   readonly name?: string;
@@ -272,6 +284,21 @@ export type ExperienceEntry =
   | ({ readonly kind: 'epilogue' } & InterstitialBase);
 
 /**
+ * The opening sits at param 0, one key before stage 01: the camera rests on the
+ * night side of Earth with the Sun's glare rimming the limb. Scrolling to the
+ * first stage sweeps around into the light — the reveal is the flight itself.
+ */
+export const OPENING_PARAM = 0;
+
+/** Camera parameter of the final stage — the path runs 0..14. */
+export const LAST_STAGE_PARAM = JOURNEY.length;
+
+/** Where the whisper text gives way to the hook, in camera parameters. */
+export const OPENING_WHISPER_END = 0.35;
+/** Where the Earth reveal is complete and the hook is fully in, in camera params. */
+export const OPENING_RISE_END = 0.6;
+
+/**
  * The landing page, in reading order. Stage entries inherit every word from
  * JOURNEY; the interstitials carry their own — they are the beats that stop the
  * page from being a planet-by-planet catalogue: departure, scale, silence,
@@ -284,6 +311,10 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
     kind: 'prologue',
     id: 'prologue',
     param: 0,
+    // Phase one — the whisper: the visitor is somewhere dark, close to
+    // something enormous. No planet is named; the night side is on screen.
+    whisper: 'You are on the night side of a world.',
+    whisperHint: 'Scroll, and cross into the light',
     kicker: 'Orbital · A Solar System Journey',
     name: 'Cross the Solar System in <em>one take.</em>',
     statement:
@@ -299,11 +330,11 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
       'Opening. A cinematic scroll through the entire Solar System, from Earth to the Sun, in one continuous camera move.',
   },
   // 01 — the departure: Earth, close, personal, the start of everything.
-  { kind: 'stage', param: 0, stageId: 'earth' },
+  { kind: 'stage', param: 1, stageId: 'earth' },
   {
     kind: 'moment',
     id: 'departure',
-    param: 0.5,
+    param: 1.5,
     kicker: 'Moment · Departure',
     statement: 'Earth falls away one kilometre at a time.',
     meta: ['29.8 KM/S', 'ESCAPE VELOCITY 11.2 KM/S'],
@@ -313,11 +344,11 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
       'Moment. Leaving Earth: the planet recedes as the camera gathers speed and the first silence of space opens up.',
   },
   // 02 — a landmark already behind us before it is named.
-  { kind: 'stage', param: 1, stageId: 'moon' },
+  { kind: 'stage', param: 2, stageId: 'moon' },
   {
     kind: 'moment',
     id: 'inner-system',
-    param: 1.5,
+    param: 2.5,
     kicker: 'Moment · The Inner System',
     statement: 'Four rocky worlds, inside one beam of sunlight.',
     meta: ['0.39–1.52 AU', 'MERCURY · VENUS · EARTH · MARS'],
@@ -326,16 +357,16 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
       'Moment. The inner system: four small rocky worlds huddled close to the Sun, shown for scale against the void beyond.',
   },
   // 03 — heat, proximity, hard light.
-  { kind: 'stage', param: 2, stageId: 'mercury' },
+  { kind: 'stage', param: 3, stageId: 'mercury' },
   // 04 — silent on purpose: the clouds are the content.
-  { kind: 'stage', param: 3, stageId: 'venus' },
+  { kind: 'stage', param: 4, stageId: 'venus' },
   // 05 — the scale checkpoint: the same Earth, now a dot.
-  { kind: 'stage', param: 4, stageId: 'earth-orbit' },
+  { kind: 'stage', param: 5, stageId: 'earth-orbit' },
   {
     // THE SCALE OF IT ALL — the moment the journey stops being about planets.
     kind: 'moment',
     id: 'scale',
-    param: 4.4,
+    param: 5.4,
     kicker: 'Moment · The Scale Of It All',
     statement:
       'Every place you have ever been, and every place anyone has ever been, fits inside this frame.',
@@ -348,18 +379,18 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
       'Moment. The scale of it all: the whole of human reach, contained in a single view of the system behind the camera.',
   },
   // 06 — last rock before the debris.
-  { kind: 'stage', param: 5, stageId: 'mars' },
+  { kind: 'stage', param: 6, stageId: 'mars' },
   // 07 — through the rubble: the transition between two halves of the system.
-  { kind: 'stage', param: 6, stageId: 'asteroid-belt' },
+  { kind: 'stage', param: 7, stageId: 'asteroid-belt' },
   // 08 — mass.
-  { kind: 'stage', param: 7, stageId: 'jupiter' },
+  { kind: 'stage', param: 8, stageId: 'jupiter' },
   // 09 — the signature moment.
-  { kind: 'stage', param: 8, stageId: 'saturn' },
+  { kind: 'stage', param: 9, stageId: 'saturn' },
   {
     // Silence: no headline, no planet name. Only the emptiness between giants.
     kind: 'moment',
     id: 'silence',
-    param: 8.6,
+    param: 9.6,
     kicker: 'Moment · Silence',
     statement: 'No signals. No landmarks. Only distance.',
     captionPos: 'center',
@@ -368,13 +399,13 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
       'Moment. Silence: the emptiness between the giants, with nothing to look at but space itself.',
   },
   // 10 — silent: the tilt is the sentence.
-  { kind: 'stage', param: 9, stageId: 'uranus' },
+  { kind: 'stage', param: 10, stageId: 'uranus' },
   // 11 — the edge of the bright.
-  { kind: 'stage', param: 10, stageId: 'neptune' },
+  { kind: 'stage', param: 11, stageId: 'neptune' },
   {
     kind: 'moment',
     id: 'orbits',
-    param: 10.6,
+    param: 11.6,
     kicker: 'Moment · Orbital Motion',
     statement: 'Every line you can see is a year.',
     meta: ['SATURN 29.5 YEARS', 'NEPTUNE 165 YEARS'],
@@ -384,11 +415,11 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
       'Moment. Orbital motion: the rings the camera has been flying along resolve into years — one lap of each world around the Sun.',
   },
   // 12 — out past the Kuiper Belt.
-  { kind: 'stage', param: 11, stageId: 'outer' },
+  { kind: 'stage', param: 12, stageId: 'outer' },
   {
     kind: 'moment',
     id: 'comparison',
-    param: 11.6,
+    param: 12.6,
     kicker: 'Moment · A Sense Of Scale',
     statement: 'If the Sun were a doorway, Neptune would be a kilometre away.',
     meta: ['SUN Ø 1.39M KM', 'NEPTUNE 4.5B KM'],
@@ -404,7 +435,7 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
     // worth feeling', right before the pull-back shows everything at once.
     kind: 'manifest',
     id: 'manifest',
-    param: 11.8,
+    param: 12.8,
     kicker: 'Why this journey',
     statement: 'Not a page about planets. A flight past them.',
     captionPos: 'center',
@@ -427,16 +458,16 @@ export const EXPERIENCE: readonly ExperienceEntry[] = [
       'Why this journey: three reasons the experience is worth taking — one continuous flight, true scale, and every frame drawn live in code.',
   },
   // 13 — the pull-back: everything, at once.
-  { kind: 'stage', param: 12, stageId: 'overview' },
+  { kind: 'stage', param: 13, stageId: 'overview' },
   // 14 — the climax.
-  { kind: 'stage', param: 13, stageId: 'sun' },
+  { kind: 'stage', param: 14, stageId: 'sun' },
   {
     // FINAL LANDING PAGE MOMENT — journey completed, value understood, action
     // available. The headline names what just happened, and the primary action
     // offers the one thing left to do with it.
     kind: 'epilogue',
     id: 'end',
-    param: 13,
+    param: 14,
     kicker: 'Journey Complete',
     name: 'You\u2019ve seen the system. <em>Now feel the scale again.</em>',
     statement:

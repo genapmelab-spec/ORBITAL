@@ -42,6 +42,8 @@ const epilogue = EXPERIENCE.find((entry) => entry.kind === 'epilogue');
           note={prologue.note ?? ''}
           actions={prologue.actions ?? []}
           summary={prologue.summary}
+          whisper={prologue.whisper ?? ''}
+          whisperHint={prologue.whisperHint ?? ''}
           param={prologue.param}
         />
       )

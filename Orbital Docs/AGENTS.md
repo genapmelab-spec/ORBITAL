@@ -158,6 +158,14 @@ Deviations from the earlier sketch, all deliberate:
 6. **No booking form.** The old concept's conversion funnel is gone (PRD v2.0);
    the page's actions are navigation inside the experience, and the ending
    carries a final statement plus an expedition log instead of a form.
+7. **The opening is a reveal, not a hero image.** Camera param 0 is an extra
+   key on Earth's night side (anchors.ts OPENING_KEY, CAMERA_KEYS); stage keys
+   keep whole-number parameters (stage i = param i). The prologue renders two
+   DOM layers (whisper → hook) that scene.ts phase-flips on OPENING_RISE_END;
+   the scroll controller slows the camera through the opening span.
+8. **Auto-hide chrome.** nav.ts presents the instrument once at boot, retires
+   it after 4s idle (`is-dormant`), and wakes it on pointer proximity, scroll
+   or focus; the mobile sheet holds it awake for as long as it is open.
 
 ## Prohibitions (AI agents MUST NOT)
 - Add libraries/features not in Tech Stack (no React, no R3F, no postprocessing

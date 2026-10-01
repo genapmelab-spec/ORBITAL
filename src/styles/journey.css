@@ -171,13 +171,87 @@
   align-items: stretch;
 }
 
-.hero-body {
-  align-self: center;
+/* Two phases over one camera move: the whisper (night side) and the hook
+   (after the reveal) share one grid cell, so the crossfade between them can
+   never shift layout. scene.ts flips data-phase; both layers stay in the DOM
+   for a11y, reduced motion and the no-WebGL fallback. */
+.hero-phases {
+  align-self: stretch;
   margin-right: auto;
-  max-width: 46rem;
+  width: min(46rem, 100%);
+  display: grid;
+}
+
+.hero-phase {
+  grid-area: 1 / 1;
   display: flex;
   flex-direction: column;
+  justify-content: center;
   gap: 1.4rem;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.75rem);
+  pointer-events: none;
+  transition:
+    opacity 850ms var(--ease-settle),
+    transform 850ms var(--ease-settle),
+    visibility 0s linear 850ms;
+}
+
+.stage--hero[data-phase='whisper'] .hero-phase--whisper,
+.stage--hero[data-phase='hook'] .hero-phase--hook {
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  pointer-events: auto;
+  transition-delay: 120ms, 120ms, 0s;
+}
+
+[data-phase='hook'] .hero-phase--whisper {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-0.6rem);
+  pointer-events: none;
+  transition-delay: 0s;
+}
+
+.hero-whisper {
+  font-size: 0.78rem;
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  color: var(--orb-text);
+  text-shadow: 0 1px 24px var(--orb-scrim);
+}
+
+.hero-whisper-hint {
+  margin-top: 1.4rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--orb-muted);
+  text-shadow: 0 1px 20px var(--orb-scrim);
+  animation: whisper-breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes whisper-breathe {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-whisper-hint {
+    animation: none;
+    opacity: 1;
+  }
+
+  .hero-phase {
+    transform: none;
+  }
 }
 
 .hero-title {
@@ -445,6 +519,30 @@
 .js .chrome.is-ready {
   --chrome-opacity: 1;
   --chrome-y: 0;
+}
+
+/* Auto-hide: nav.ts retires the instrument after idle and wakes it on
+   pointer proximity, scroll or focus. It slides up and fades — slowly enough
+   to read as a system powering down, never a pop. While dormant it also
+   drops out of the hit-test so a stray hover cannot fight the wake logic. */
+.js .chrome.is-dormant {
+  --chrome-opacity: 0;
+  --chrome-y: -0.75rem;
+}
+
+.js .chrome.is-dormant .brand,
+.js .chrome.is-dormant .journey-nav,
+.js .chrome.is-dormant .journey-menu-btn {
+  pointer-events: none;
+}
+
+/* The journey line dims with the chrome: instrument on standby, still live. */
+.chrome.is-dormant ~ .journey-progress {
+  opacity: 0.35;
+}
+
+.journey-progress {
+  transition: opacity 700ms var(--ease-settle);
 }
 
 .brand {
@@ -853,8 +951,11 @@
 
   .stage-caption,
   .stage--moment .moment-caption,
-  .stage--hero .hero-body,
   .stage--manifest .manifest-body {
+    align-self: flex-end;
+  }
+
+  .stage--hero .hero-phases {
     align-self: flex-end;
   }
 
@@ -901,7 +1002,7 @@
     margin-left: 0;
   }
 
-  .hero-body {
-    max-width: 100%;
+  .hero-phases {
+    width: 100%;
   }
 }

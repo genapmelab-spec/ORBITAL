@@ -6,7 +6,9 @@ import type { StageId } from '../content/journey';
  * LAYOUT CONTRACT — the only place where Solar System geometry and camera
  * compositions live. Objects, the camera path and the scroll choreography all
  * read from here, so the world and the camera can never drift apart.
- * Stage order comes from JOURNEY and nowhere else.
+ * Stage order comes from JOURNEY and nowhere else. The camera path runs from
+ * the opening (param 0, Earth's night side) through stage 14 (param 14): one
+ * key per integer, plus the opening.
  */
 
 export type { StageId };
@@ -15,8 +17,10 @@ export type Vec3Tuple = readonly [number, number, number];
 
 export const STAGE_ORDER: readonly StageId[] = JOURNEY.map((stage) => stage.id);
 export const STAGE_COUNT = STAGE_ORDER.length;
-/** Camera parameter runs 0 → LAST_STAGE_PARAM across the journey. */
-export const LAST_STAGE_PARAM = STAGE_COUNT - 1;
+/** Camera parameter runs 0 → LAST_STAGE_PARAM: opening → stage 14. */
+export const LAST_STAGE_PARAM = STAGE_COUNT;
+/** Zero-based journey index of the last stage — camera key `LAST_STAGE_PARAM`. */
+export const LAST_STAGE_INDEX = STAGE_COUNT - 1;
 
 /* ── Scale contract ─────────────────────────────────────────────────────────
    True scale cannot be walked: at real ratios the Sun swallows Mercury and the
@@ -420,15 +424,50 @@ export interface StageFrameSpec {
   readonly roll?: number;
 }
 
+/* ── The opening ───────────────────────────────────────────────────────────
+   The page must not open on a planet. The camera starts on Earth's night side,
+   between the world and the stars: the disc reads as a near-black cutout, the
+   ion atmosphere rims its edge, and the Sun's glare waits just off the limb.
+   Scrolling carries the camera around the limb into the light — the reveal is
+   earned by the flight itself, not shown as a hero image. */
+
+/** The camera key that sits one step before stage 01 (param 0). */
+export const OPENING_KEY = 'opening';
+
+/** Every camera key in param order: the opening, then the journey. */
+export const CAMERA_KEYS: readonly (StageId | typeof OPENING_KEY)[] = [OPENING_KEY, ...STAGE_ORDER];
+
 /**
- * One frame per stage, in journey order. `radial` is outward from the Sun, so
- * a slightly negative value parks the camera between the Sun and the subject:
- * the subject is lit, the Sun sits off-frame, and captions stay readable.
+ * Opening composition, in Earth radii. Positive `radial` parks the camera on
+ * the ANTI-sunward side — the night side — so the disc reads as a thin lit
+ * crescent (≈4% illuminated) with the Sun's glare hidden behind the limb:
+ * an eclipse waiting to end. The stage-01 reveal then swings the camera around
+ * into daylight. frameX ≈ 0.12 holds the disc just right of the whisper type.
  */
-export const STAGE_FRAMES: Record<StageId, StageFrameSpec> = {
-  // 01 — close and personal, the limb sweeping the right of frame. The opening
-  // shares this composition, so Earth leaves the left half dark for the title:
-  // a filled frame is dramatic, an unreadable one is just a wall.
+const OPENING_FRAME: StageFrameSpec = {
+  body: 'earth',
+  radial: 0.92,
+  tangent: -0.38,
+  height: 0.14,
+  dist: 5.2,
+  frameX: 0.12,
+  frameY: 0.02,
+  fov: 38,
+};
+
+/**
+ * One frame per camera key, in journey order. `radial` is outward from the
+ * Sun, so a slightly negative value parks the camera between the Sun and the
+ * subject: the subject is lit, the Sun sits off-frame, and captions stay
+ * readable.
+ */
+export const STAGE_FRAMES: Record<StageId | typeof OPENING_KEY, StageFrameSpec> = {
+  // The opening — night side, glare rim, mystery. Merges into stage 01 by
+  // interpolation, so the first reveal is one continuous camera move.
+  [OPENING_KEY]: OPENING_FRAME,
+  // 01 — close and personal, the limb sweeping the right of frame. The reveal
+  // the opening has been promising: by the time the camera settles here the
+  // visitor has crossed the terminator, so the lit face feels earned.
   earth: {
     body: 'earth',
     radial: -0.25,
@@ -599,7 +638,7 @@ export const STAGE_FRAMES: Record<StageId, StageFrameSpec> = {
 };
 
 export interface StageLayout {
-  readonly id: StageId;
+  readonly id: StageId | typeof OPENING_KEY;
   readonly body: BodyId | null;
   readonly position: Vector3;
   readonly target: Vector3;
@@ -626,14 +665,18 @@ function directionFor(id: BodyId, frame: StageFrameSpec): Vector3 {
 }
 
 /**
- * Resolves every stage frame into scene-space camera keys for a given viewport
+ * Resolves every camera key into scene-space transforms for a given viewport
  * aspect. Called at boot and on resize: responsive = re-choreography, so the
  * subject moves above the caption and gains breathing room in portrait.
+ *
+ * Key order is CAMERA_KEYS: the opening (index 0), then stage 01 (index 1)
+ * … stage 14 (index 14). Stage keys keep whole-number camera parameters by
+ * construction — index i is param i — and `check:layout` guards that invariant.
  */
 export function layoutStages(aspect: number, portrait: boolean): StageLayout[] {
   const distanceFactor = portrait ? PORTRAIT_DISTANCE_FACTOR : 1;
 
-  return STAGE_ORDER.map((id) => {
+  return CAMERA_KEYS.map((id) => {
     const frame = STAGE_FRAMES[id];
     let position: Vector3;
     let subject: Vector3;

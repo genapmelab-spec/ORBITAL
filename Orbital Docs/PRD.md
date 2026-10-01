@@ -21,10 +21,13 @@ kept relative), real-time procedural visuals (no photographs, no textures), and
 a landing page that still has an opening, a middle, moments and an ending.
 
 ## 4. User Journey
-Opening (concept + one promise + the way in) → departure from Earth → the inner
-system → the scale checkpoint → the belt → the giants (Jupiter, Saturn) →
-silence → the far system → the pull-back → the Sun → ending (final statement,
-expedition log, ways back in). Any stage reachable in one tap from the rail.
+Opening in darkness on Earth's night side (a whisper of mono type, no planet
+named) → the dawn crossing: one continuous camera move around the limb into
+the light, the Earth reveal earned by the flight itself → the hook (headline,
+promise, way in) → departure from Earth → the inner system → the scale
+checkpoint → the belt → the giants (Jupiter, Saturn) → silence → the far
+system → the pull-back → the Sun → ending (final statement, expedition log,
+ways back in). Any stage reachable in one tap from the rail.
 
 ## 5. Section Structure & Goals (see DESIGN.md §5)
 Prologue · 14 journey stages · 7 interstitials (6 moments + 1 manifesto) ·
@@ -56,8 +59,9 @@ drives camera + progress rail + active stage ✅ · boot-sequence preloader with
 stage readout ✅ · per-section reveals (stages and moments) ✅ · Kuiper belt and
 asteroid fields as environment ✅ · orbit lines revealed as the camera pulls out
 ✅ · starfield stretch with travel speed ✅ · Sun corona that only blooms when it
-is actually in frame ✅ · single navigation rail + mobile sheet ✅ · deep links to
-any stage ✅.
+is actually in frame ✅ · single navigation rail + mobile sheet ✅ · navigation chrome that
+presents itself once, then retires after idle and wakes on pointer proximity,
+scroll or focus (auto-hide) ✅ · deep links to any stage ✅.
 
 ## 8. Responsive Requirements
 Mobile-first; the journey stays one continuous narrative without 3D (CSS sky);

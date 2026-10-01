@@ -1,10 +1,12 @@
 import { Vector3 } from 'three';
 import type { PerspectiveCamera } from 'three';
-import { LAST_STAGE_PARAM, layoutStages, WORLD_UP } from './anchors';
+import { LAST_STAGE_PARAM } from '../content/journey';
+import { layoutStages, WORLD_UP } from './anchors';
 import type { StageLayout, Vec3Tuple } from './anchors';
 
 /**
- * Camera path — eased interpolation between the resolved stage frames.
+ * Camera path — eased interpolation between the resolved camera keys, from the
+ * opening (Earth's night side) to the Sun.
  *
  * Interpolation is deliberately eased-linear rather than spline-based: the
  * journey moves from a 1.5-unit fly-by to a 440-unit dive, and a Catmull-Rom
@@ -14,7 +16,7 @@ import type { StageLayout, Vec3Tuple } from './anchors';
  * gives the intended rhythm: arrive, settle, depart.
  */
 
-/** Local segment easing: zero velocity at every stage key (cinematic settle). */
+/** Local segment easing: zero velocity at every camera key (cinematic settle). */
 function easeSegment(t: number): number {
   return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 }
@@ -59,8 +61,9 @@ export class CameraPath {
   }
 
   /**
-   * Reduced motion collapses the flight: the camera rests on whole stage keys
-   * and cuts between compositions instead of travelling between them.
+   * Reduced motion collapses the flight: the camera rests on whole keys
+   * (the opening, then each stage) and cuts between compositions instead of
+   * travelling between them.
    */
   resolveProgress(progress: number, reducedMotion: boolean): number {
     const clamped = Math.min(Math.max(progress, 0), LAST_STAGE_PARAM);

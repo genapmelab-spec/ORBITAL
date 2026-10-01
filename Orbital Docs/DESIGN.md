@@ -14,12 +14,14 @@ scroll parameter, the navigation rail, the copy, the reveals and the progress
 bar. It is defined once (`src/content/journey.ts`) and nothing reshuffles it.
 
 Around the spine the page is a landing page, not a catalogue: an **opening**
-that sells the trip, **planets as landmarks** inside the journey (they are
-places the camera passes, not pages), **moments between them** — departure,
-scale, silence, orbital time — a **manifesto** (why this journey: three numbered
-editorial lines, the page's one value-proposition section, never a feature grid),
-and a **real ending** that pays the journey off with a final statement, an
-expedition log and the ways back in.
+that starts in darkness on Earth's night side — a whisper of mono type, then a
+dawn crossing around the limb, the Earth reveal earned by the flight, and only
+then the hook that sells the trip — **planets as landmarks** inside the journey
+(they are places the camera passes, not pages), **moments between them** —
+departure, scale, silence, orbital time — a **manifesto** (why this journey:
+three numbered editorial lines, the page's one value-proposition section, never
+a feature grid), and a **real ending** that pays the journey off with a final
+statement, an expedition log and the ways back in.
 
 Why: camera-driven composition cannot read as a template; planets stop being
 cards and become environment; the moments give the page rhythm and meaning

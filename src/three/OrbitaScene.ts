@@ -6,7 +6,8 @@ import {
   SRGBColorSpace,
   WebGLRenderer,
 } from 'three';
-import { CAMERA_FAR, CAMERA_NEAR, LAST_STAGE_PARAM } from './anchors';
+import { CAMERA_FAR, CAMERA_NEAR } from './anchors';
+import { LAST_STAGE_PARAM } from '../content/journey';
 import { CameraPath } from './cameraPath';
 import { QualityGovernor, profileFor } from './quality';
 import type { FrameContext, QualityTier } from './types';

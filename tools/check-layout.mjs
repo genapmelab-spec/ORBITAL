@@ -8,7 +8,9 @@
  *   1. the Sun's corona flooded every frame while the camera was at a planet;
  *   2. a spline through unevenly spaced keys overshot the Solar System;
  *   3. the Earth's opening composition left no room for the opening text.
- * Each of those is now an assertion here.
+ * Each of those is now an assertion here. The opening key (Earth's night side,
+ * param 0) is asserted separately: it must hold the dark planet in frame, sit
+ * clear of every body, and travel a real arc to reach the stage-01 reveal.
  *
  * Screen placement is measured by reproducing Matrix4.lookAt + the perspective
  * projection, so `x`/`y` are exactly what the renderer produces: +x is screen
@@ -16,6 +18,7 @@
  */
 
 import {
+  OPENING_KEY,
   RENDER_BODY_IDS,
   STAGE_FRAMES,
   STAGE_ORDER,
@@ -94,6 +97,30 @@ function project(cameraPosition, target, fov, aspect, point) {
 const failures = [];
 const notes = [];
 
+/**
+ * Stage camera keys keep whole-number parameters by construction: layout key
+ * index i is camera param i, so stage 01 = param 1 … stage 14 = param 14 and
+ * the opening owns param 0. If that ever drifts, scroll sections and camera
+ * keys disagree and the journey desyncs — assert it here.
+ */
+function assertKeyOrder() {
+  const keys = layoutStages(1.6, false);
+  if (keys.length !== STAGE_ORDER.length + 1) {
+    failures.push(`layoutStages: expected ${STAGE_ORDER.length + 1} keys (opening + stages), got ${keys.length}`);
+    return;
+  }
+  if (keys[0].id !== OPENING_KEY) {
+    failures.push(`layoutStages: first key is ${keys[0].id}, expected the opening`);
+  }
+  keys.slice(1).forEach((key, index) => {
+    if (key.id !== STAGE_ORDER[index]) {
+      failures.push(`layoutStages: key ${index + 1} is ${key.id}, expected stage ${STAGE_ORDER[index]}`);
+    }
+  });
+}
+
+assertKeyOrder();
+
 function check(viewport) {
   const aspect = viewport.width / viewport.height;
   const portrait = viewport.width <= 1024 || aspect < 1.15;
@@ -101,6 +128,7 @@ function check(viewport) {
   const rows = [];
 
   keys.forEach((key, index) => {
+    // Key 0 is the opening; stage frames start at index 1.
     const frame = STAGE_FRAMES[key.id];
     const next = keys[index + 1];
 
@@ -147,6 +175,22 @@ function check(viewport) {
         );
       } else if (offFrame) {
         notes.push(`${viewport.label} · ${key.id}: subject off frame by design (leading it)`);
+      }
+    }
+
+    // The opening must read as "somewhere dark, close to something enormous":
+    // the night-side disc in frame, and a real arc of travel to the stage-01
+    // reveal so the first move is a flight, not a nudge.
+    if (key.id === OPENING_KEY) {
+      const earth = bodies.find((candidate) => candidate.id === 'earth');
+      const openingFill = ((Math.atan(earth.radius / len(sub(key.position, earth.position))) * DEG) / (key.fov / 2)) * 100;
+      if (openingFill < 25 || openingFill > 90) {
+        failures.push(`${viewport.label} · opening: Earth disc fill ${openingFill.toFixed(0)}% outside 25–90%`);
+      }
+      const earthKey = keys[1];
+      const travel = len(sub(earthKey.position, key.position));
+      if (travel < earth.radius) {
+        failures.push(`${viewport.label} · opening: reveal travel ${travel.toFixed(2)} is too short (< Earth radius)`);
       }
     }
 
