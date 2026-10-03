@@ -1,10 +1,11 @@
-import { GLSL_NOISE, GLSL_TONEMAP } from './common';
+import { GLSL_NOISE, GLSL_TONEMAP } from './common.ts';
 
 /**
- * Planet surface. Matte, single key light, procedural bands and grain — no
- * textures, no maps, one draw call per body. Lighting is analytic: the Sun's
- * direction and colour arrive as uniforms, so no Three.js light objects are
- * needed and every body costs the same.
+ * Planet surface. Matte, one key light, procedural bands and grain — one draw
+ * call per body, no textures. Lighting is analytic: the Sun's direction and
+ * colour arrive as uniforms, so the scene needs no light objects and every body
+ * costs the same. `uTerminator` widens or sharpens the day/night line: airless
+ * worlds get a hard edge, worlds with atmosphere a soft one.
  */
 
 export const PLANET_VERTEX = /* glsl */ `
@@ -30,6 +31,7 @@ export const PLANET_FRAGMENT = /* glsl */ `
   uniform float uBandFrequency;
   uniform float uBandStrength;
   uniform float uNoiseScale;
+  uniform float uTerminator;
 
   varying vec3 vNormalWorld;
   varying vec3 vLocalPosition;
@@ -41,7 +43,7 @@ export const PLANET_FRAGMENT = /* glsl */ `
     vec3 normal = normalize(vNormalWorld);
     float lambert = dot(normal, uSunDirection);
     // Terminator: geological detail survives a little past the day/night line.
-    float daylight = smoothstep(-0.14, 0.42, lambert);
+    float daylight = smoothstep(-uTerminator, uTerminator * 2.6, lambert);
     float diffuse = clamp(lambert, 0.0, 1.0);
 
     vec3 samplePosition = vLocalPosition * uNoiseScale;

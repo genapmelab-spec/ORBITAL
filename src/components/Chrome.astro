@@ -1,0 +1,54 @@
+---
+import { DESTINATIONS, NAV } from '../content/experience.ts';
+
+/** Must match `labelFor('entry')` in src/scripts/chrome.ts. */
+const ENTRY_LABEL = { index: '00', name: 'Pre-flight' };
+
+/**
+ * One navigation system for the whole page — no rail plus bar, no sidebar. On
+ * wide screens the section links sit inline; on small ones the same list folds
+ * behind the Destinations trigger. Behaviour (3 s idle retract, wake on intent)
+ * lives in src/scripts/chrome.ts.
+ */
+---
+
+<header class="chrome" data-chrome>
+  <div class="chrome__bar">
+    <a class="chrome__brand" href={NAV.brandHref}>{NAV.brand}</a>
+    <p class="chrome__where u-mono">
+      <span data-chrome-index aria-hidden="true">{ENTRY_LABEL.index}</span>
+      <span data-chrome-name aria-hidden="true">{ENTRY_LABEL.name}</span>
+      <span class="sr-only" data-chrome-live>Start of the flight</span>
+    </p>
+    <nav class="chrome__nav" id="global-nav" data-nav aria-label="Page sections">
+      <ul class="chrome__list">
+        <li>
+          <a class="chrome__link" href={NAV.why.href} data-nav-link="premise">{NAV.why.label}</a>
+        </li>
+        {
+          DESTINATIONS.map((destination) => (
+            <li>
+              <a class="chrome__link" href={`#${destination.id}`} data-nav-link={destination.id}>
+                <span data-nav-index>{String(destination.index).padStart(2, '0')}</span>
+                <span>{destination.name}</span>
+              </a>
+            </li>
+          ))
+        }
+        <li>
+          <a class="chrome__link" href={NAV.controls.href} data-nav-link="control">{NAV.controls.label}</a>
+        </li>
+      </ul>
+    </nav>
+    <button
+      class="chrome__trigger"
+      type="button"
+      data-nav-trigger
+      aria-expanded="false"
+      aria-controls="global-nav"
+    >
+      Destinations
+    </button>
+  </div>
+  <div class="chrome__progress" aria-hidden="true"><span data-progress-bar></span></div>
+</header>

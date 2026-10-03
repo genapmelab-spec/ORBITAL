@@ -1,9 +1,9 @@
-import { GLSL_NOISE, GLSL_TONEMAP } from './common';
+import { GLSL_NOISE, GLSL_TONEMAP } from './common.ts';
 
 /**
- * The Sun is the final destination, so it gets the two heaviest shaders in the
- * project: a boiling photosphere with limb brightening, and an additive corona
- * billboard whose outer glow yields as the camera dives in.
+ * The Sun is the climax of the flight, so it gets the heaviest shaders in the
+ * project: a boiling photosphere with limb brightening, and two additive corona
+ * billboards whose outer glow thins as the camera dives in.
  */
 
 export const SUN_VERTEX = /* glsl */ `

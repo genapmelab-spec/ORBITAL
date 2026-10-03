@@ -1,0 +1,39 @@
+---
+import { ENTRY, SECTION_BY_ID } from '../content/experience.ts';
+
+/**
+ * The opening. It must answer "where am I?" before it answers "what is this?":
+ * a window above the night side, one quiet line, then the identity and the
+ * value proposition arrive while the camera holds still. The reveal is driven by
+ * scroll progress in src/scripts/motion.ts, never by a timer.
+ */
+---
+
+<section
+  class="section section--entry"
+  id="entry"
+  data-section
+  data-id="entry"
+  data-param={SECTION_BY_ID.entry.param}
+  data-hold="1.15"
+  aria-labelledby="entry-title"
+>
+  <div class="entry__main">
+    <p class="entry__whisper">{ENTRY.whisper}</p>
+    <p class="entry__cue u-mono" data-opening="cue">Scroll</p>
+    <p class="entry__eyebrow u-mono" data-opening="reveal">{ENTRY.eyebrow}</p>
+    <p class="entry__strap u-mono" data-opening="reveal">{ENTRY.strapline}</p>
+    <h1 class="entry__title" id="entry-title" data-opening="reveal">
+      {ENTRY.titleLead} <em>{ENTRY.titleEm}</em>
+    </h1>
+    <p class="entry__support" data-opening="reveal">{ENTRY.support}</p>
+    <div class="entry__actions" data-opening="reveal">
+      <a class="button button--primary" href={ENTRY.primaryCta.href} data-cta>{ENTRY.primaryCta.label}</a>
+      <a class="button button--ghost" href={ENTRY.secondaryCta.href}>{ENTRY.secondaryCta.label}</a>
+    </div>
+    <p class="entry__meta u-mono" data-opening="reveal">
+      {ENTRY.meta.destinations} · {ENTRY.meta.photographs} · {ENTRY.meta.datePrefix}
+      <time data-epoch-label>today</time>
+    </p>
+  </div>
+</section>

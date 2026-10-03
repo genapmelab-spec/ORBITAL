@@ -1,97 +1,79 @@
 ---
 import '../styles/global.css';
 
-export interface Props {
-  title: string;
-  description: string;
+interface Props {
+  title?: string;
+  description?: string;
 }
 
-const { title, description } = Astro.props;
+const {
+  title = 'ORBITAL — a live model of the Solar System',
+  description = 'ORBITAL is a working model of the Solar System: real orbital positions for today, every surface drawn live in your browser, one unbroken flight from a window above Earth to the surface of the Sun. No photographs, no textures.',
+} = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#05060b" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#030510" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@400;500;600&display=swap"
     />
-
-    <!--
-      Capability probe. Runs before first paint so the very first frame is
-      already correct: no flash of a canvas the GPU cannot fill, no hidden
-      content on a device without WebGL. Feature and perf probes only —
-      user-agent sniffing is forbidden (AGENTS.md).
-    -->
     <script is:inline>
+      // Pre-paint probe: the page must know what it can do before it paints, so
+      // the fallbacks are never a flash of the wrong thing. No user-agent
+      // sniffing anywhere — capability, not identity (docs/AGENTS.md).
       (function () {
         var root = document.documentElement;
+        root.classList.remove('no-js');
         root.classList.add('js');
 
-        // The journey always opens at stage 01: a restored scroll position would
-        // drop the visitor into the middle of a flight they never took.
-        if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+        var reduced = false;
+        try {
+          reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        } catch (error) {
+          reduced = false;
+        }
 
-        var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var webgl = false;
-        var tier = 'medium';
-
         try {
           var probe = document.createElement('canvas');
-          var gl = probe.getContext('webgl2') || probe.getContext('webgl');
-          webgl = gl !== null && gl !== undefined;
-
-          if (webgl) {
-            var debug = gl.getExtension('WEBGL_debug_renderer_info');
-            var rendererName = debug
-              ? String(gl.getParameter(debug.UNMASKED_RENDERER_WEBGL))
-              : '';
-            var cores = navigator.hardwareConcurrency || 4;
-            var width = window.innerWidth;
-            var dpr = window.devicePixelRatio || 1;
-            var narrow = width <= 768;
-            var software = /swiftshader|llvmpipe|software|basic render/i.test(rendererName);
-
-            if (software || (narrow && cores <= 4)) {
-              tier = 'low';
-            } else if (cores >= 8 && width > 1024 && dpr <= 2) {
-              tier = 'high';
-            } else {
-              tier = 'medium';
-            }
-
-            // Without camera motion the journey is a slideshow of compositions:
-            // one static frame per stage is enough, so keep it cheap.
-            if (reducedMotion) tier = 'low';
-
-            var lose = gl.getExtension('WEBGL_lose_context');
-            if (lose) lose.loseContext();
-          }
+          var context = probe.getContext('webgl2') || probe.getContext('webgl');
+          webgl = context !== null && typeof context.getParameter === 'function';
         } catch (error) {
           webgl = false;
         }
 
+        window.__ORBITAL__ = { webgl: webgl, reducedMotion: reduced };
+        if (reduced) root.classList.add('reduced-motion');
         if (!webgl) root.classList.add('no-webgl');
-        if (!webgl || tier === 'low') root.classList.add('tier-skybox');
 
-        window.__ORBITAL__ = {
-          webgl: webgl,
-          tier: webgl ? tier : 'low',
-          reducedMotion: reducedMotion,
-        };
+        // Always start the flight at the window, never half-way down a restored
+        // scroll position.
+        if ('scrollRestoration' in history) {
+          history.scrollRestoration = 'manual';
+        }
       })();
     </script>
   </head>
   <body>
-    <a class="skip-link" href="#journey">Skip to the journey</a>
+    <a class="skip-link" href="#earth">Skip to the flight</a>
     <slot />
+    <script>
+      import { boot } from '../scripts/boot.ts';
+      boot();
+    </script>
   </body>
 </html>

@@ -1,4 +1,4 @@
-import { GLSL_TONEMAP } from './common';
+import { GLSL_TONEMAP } from './common.ts';
 
 /**
  * Points shaders. Stars carry their own size, twinkle phase and temperature;
@@ -13,7 +13,7 @@ export const STAR_VERTEX = /* glsl */ `
 
   uniform float uTime;
   uniform float uPixelRatio;
-  /** Scroll-velocity stretch: stars lean toward the viewer on fast travel. */
+  /** Travel-velocity stretch: stars lean toward the viewer on fast moves. */
   uniform float uStretch;
 
   varying vec3 vColor;

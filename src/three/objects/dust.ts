@@ -6,24 +6,23 @@ import {
   ShaderMaterial,
   Vector3,
 } from 'three';
-import { DUST_FRAGMENT, DUST_VERTEX } from '../shaders/points';
-import { createRandom } from '../random';
-import type { FrameContext, SceneObject } from '../types';
+import { DUST_FRAGMENT, DUST_VERTEX } from '../shaders/points.ts';
+import { createRandom } from '../systems/random.ts';
+import type { FrameContext, SceneObject } from '../types.ts';
 
 /**
  * Interplanetary dust. A box of motes that wraps around the camera, so the
  * field stays infinitely long while each mote keeps a fixed world position:
- * travel is read from parallax, not from moving particles.
+ * travel is read from parallax, not from moving particles. Brightness follows
+ * the journey — near-still during a station, alive while crossing.
  */
 
 export const DUST_BOX: readonly [number, number, number] = [90, 60, 90];
-/** Distance at which a mote fades out, in scene units. */
 export const DUST_FADE_RADIUS = 40;
 export const DUST_SIZE_MIN = 0.7;
 export const DUST_SIZE_MAX = 1.9;
 export const DUST_SEED = 0x2c1d77;
-/** Brightness floor so slow stages are not dead, ceiling so dives feel fast. */
-export const DUST_OPACITY_MIN = 0.12;
+export const DUST_OPACITY_MIN = 0.1;
 export const DUST_OPACITY_MAX = 0.4;
 export const DUST_SPEED_REFERENCE = 55;
 
@@ -77,7 +76,7 @@ export function createDust(count: number, pixelRatio: number): DustHandle {
     root: points,
     update(ctx: FrameContext): void {
       uniforms.uTime.value = ctx.elapsed;
-      uniforms.uPixelRatio.value = pixelRatio;
+      uniforms.uPixelRatio.value = ctx.pixelRatio;
       uniforms.uCamera.value.copy(ctx.camera.position);
       const intensity = Math.min(ctx.speed / DUST_SPEED_REFERENCE, 1);
       const target = DUST_OPACITY_MIN + (DUST_OPACITY_MAX - DUST_OPACITY_MIN) * intensity;

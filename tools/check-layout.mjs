@@ -1,260 +1,340 @@
 /**
- * Layout contract check (AGENTS.md → Testing & Validation Procedure, step 4).
+ * Layout and content contract.
  *
- * Reads the real layout code (`src/three/anchors.ts`, bundled by
- * `npm run check:layout`) and asserts the properties the camera path must have.
- * It exists because three real bugs hid in this table and were invisible in the
- * rendered page until the frame was measured:
- *   1. the Sun's corona flooded every frame while the camera was at a planet;
- *   2. a spline through unevenly spaced keys overshot the Solar System;
- *   3. the Earth's opening composition left no room for the opening text.
- * Each of those is now an assertion here. The opening key (Earth's night side,
- * param 0) is asserted separately: it must hold the dark planet in frame, sit
- * clear of every body, and travel a real arc to reach the stage-01 reveal.
+ * Runs the project's own camera maths in Node — the same modules the browser
+ * uses — and refuses to let the page ship if the story and the 3D scene have
+ * drifted apart. Checks are grouped; every failure is printed, not just the
+ * first. Exit code 1 means "do not build".
  *
- * Screen placement is measured by reproducing Matrix4.lookAt + the perspective
- * projection, so `x`/`y` are exactly what the renderer produces: +x is screen
- * right, +y is screen up, |value| > 1 means outside the frame.
+ * Run with `npm run check:layout`.
  */
 
 import {
-  OPENING_KEY,
-  RENDER_BODY_IDS,
-  STAGE_FRAMES,
-  STAGE_ORDER,
-  SUN_RADIUS,
-  bodyPosition,
-  bodyRadius,
-  layoutStages,
-} from '../node_modules/.cache/orbital/anchors.mjs';
-
-const DEG = 180 / Math.PI;
-const VIEWPORTS = [
-  { label: 'desktop 16:10', width: 1440, height: 900 },
-  { label: 'laptop 16:9', width: 1920, height: 1080 },
-  { label: 'tablet portrait', width: 834, height: 1112 },
-  { label: 'phone portrait', width: 390, height: 844 },
-];
-
-/**
- * Stages whose subject is allowed off frame:
- *   mercury / mars / jupiter — the close passes the composition is built on;
- *   asteroid-belt — the subject is the field and the Sun, not Ceres;
- *   outer — Pluto places the camera, but the shot looks back at the Sun.
- */
-const INTENTIONAL_OVERFLOW = new Set(['mercury', 'mars', 'jupiter', 'asteroid-belt', 'outer']);
-
-/** Stages built around the Sun being visible: the look-back and the finale. */
-const SUN_CENTRED_STAGES = new Set(['asteroid-belt', 'outer', 'overview', 'sun']);
-
-const bodies = RENDER_BODY_IDS.map((id) => ({
-  id,
-  position: bodyPosition(id),
-  radius: bodyRadius(id),
-}));
-
-const sub = (a, b) => ({ x: a.x - b.x, y: a.y - b.y, z: a.z - b.z });
-const dot = (a, b) => a.x * b.x + a.y * b.y + a.z * b.z;
-const len = (a) => Math.hypot(a.x, a.y, a.z);
-const norm = (a) => {
-  const l = len(a) || 1;
-  return { x: a.x / l, y: a.y / l, z: a.z / l };
-};
-const cross = (a, b) => ({
-  x: a.y * b.z - a.z * b.y,
-  y: a.z * b.x - a.x * b.z,
-  z: a.x * b.y - a.y * b.x,
-});
-const clamp01 = (v) => Math.min(Math.max(v, 0), 1);
-const smoothstep = (e0, e1, v) => {
-  const t = clamp01((v - e0) / (e1 - e0));
-  return t * t * (3 - 2 * t);
-};
-
-function project(cameraPosition, target, fov, aspect, point) {
-  const z = norm(sub(cameraPosition, target));
-  // Matrix4.lookAt keeps the camera up and only nudges it when the cross
-  // product degenerates — the projection has to match that, not approximate it.
-  let up = { x: 0, y: 1, z: 0 };
-  let x = cross(up, z);
-  if (len(x) < 1e-6) {
-    up = { x: 1, y: 0, z: 0 };
-    x = cross(up, z);
-  }
-  x = norm(x);
-  const y = cross(z, x);
-  const rel = sub(point, cameraPosition);
-  const depth = -dot(rel, z);
-  const tanV = Math.tan(fov / 2 / DEG);
-  if (depth <= 0) return { x: Number.NaN, y: Number.NaN, depth };
-  return {
-    x: dot(rel, x) / (depth * tanV * aspect),
-    y: dot(rel, y) / (depth * tanV),
-    depth,
-  };
-}
+  BODIES,
+  CAMERA_KEYS,
+  KEY_BY_ID,
+  composeCamera,
+  effectiveDistance,
+  effectiveFrame,
+  projectPoint,
+  projectedRadius,
+} from '../src/three/camera/anchors.ts';
+import { nearestKey, sampleCamera } from '../src/three/camera/path.ts';
+import { addDays, bodyPositions, formatIsoDate } from '../src/three/systems/epoch.ts';
+import {
+  CAMERA_PARAMS,
+  DESTINATIONS,
+  LAST_PARAM,
+  OPENING,
+  SECTIONS,
+} from '../src/content/experience.ts';
 
 const failures = [];
-const notes = [];
+const checks = [];
 
-/**
- * Stage camera keys keep whole-number parameters by construction: layout key
- * index i is camera param i, so stage 01 = param 1 … stage 14 = param 14 and
- * the opening owns param 0. If that ever drifts, scroll sections and camera
- * keys disagree and the journey desyncs — assert it here.
- */
-function assertKeyOrder() {
-  const keys = layoutStages(1.6, false);
-  if (keys.length !== STAGE_ORDER.length + 1) {
-    failures.push(`layoutStages: expected ${STAGE_ORDER.length + 1} keys (opening + stages), got ${keys.length}`);
-    return;
+function check(name, condition, detail) {
+  checks.push(name);
+  if (!condition) {
+    failures.push(`${name}${detail === undefined ? '' : ` — ${detail}`}`);
   }
-  if (keys[0].id !== OPENING_KEY) {
-    failures.push(`layoutStages: first key is ${keys[0].id}, expected the opening`);
-  }
-  keys.slice(1).forEach((key, index) => {
-    if (key.id !== STAGE_ORDER[index]) {
-      failures.push(`layoutStages: key ${index + 1} is ${key.id}, expected stage ${STAGE_ORDER[index]}`);
-    }
-  });
 }
 
-assertKeyOrder();
+const VIEWPORTS = [
+  { label: '1440x900', aspect: 1440 / 900, portrait: false },
+  { label: '834x1112', aspect: 834 / 1112, portrait: true },
+  { label: '390x844', aspect: 390 / 844, portrait: true },
+];
 
-function check(viewport) {
-  const aspect = viewport.width / viewport.height;
-  const portrait = viewport.width <= 1024 || aspect < 1.15;
-  const keys = layoutStages(aspect, portrait);
-  const rows = [];
+const START = new Date();
+const EPOCHS = [
+  { label: 'today', date: START },
+  { label: '+180d', date: addDays(START, 180) },
+  { label: '-400d', date: addDays(START, -400) },
+  { label: '+900d', date: addDays(START, 900) },
+  { label: '-1000d', date: addDays(START, -1000) },
+];
 
-  keys.forEach((key, index) => {
-    // Key 0 is the opening; stage frames start at index 1.
-    const frame = STAGE_FRAMES[key.id];
-    const next = keys[index + 1];
+const NEAR = 1e-6;
 
-    let inside = null;
-    let nearest = { id: '-', distance: Infinity };
-    for (const body of bodies) {
-      const distance = len(sub(key.position, body.position));
-      if (distance < nearest.distance) nearest = { id: body.id, distance };
-      if (distance < body.radius * 1.02) inside = `${body.id} (${distance.toFixed(2)})`;
-    }
-    if (inside !== null) failures.push(`${viewport.label} · ${key.id}: camera inside ${inside}`);
+/**
+ * How large each subject is allowed to read, in NDC vertical radius. These are
+ * design decisions, not tolerances: the hero is a limb, Jupiter fills more than
+ * half the frame, and the transit keys are deliberately wide.
+ */
+const SIZE_BANDS = {
+  entry: [0.24, 0.46],
+  earth: [0.3, 0.6],
+  'transit-moon': [0.05, 0.3],
+  moon: [0.25, 0.6],
+  mars: [0.3, 0.6],
+  jupiter: [0.4, 0.72],
+  ascent: [0.1, 0.5],
+  sun: [0.4, 0.72],
+  overview: [0.02, 0.2],
+};
 
-    let graze = null;
-    if (next) {
-      for (let step = 0; step <= 60; step += 1) {
-        const t = step / 60;
-        const point = {
-          x: key.position.x + (next.position.x - key.position.x) * t,
-          y: key.position.y + (next.position.y - key.position.y) * t,
-          z: key.position.z + (next.position.z - key.position.z) * t,
-        };
-        for (const body of bodies) {
-          const distance = len(sub(point, body.position));
-          if (distance < body.radius * 1.15) graze = `${body.id} (${distance.toFixed(2)})`;
-        }
-      }
-    }
-    if (graze !== null) {
-      failures.push(`${viewport.label} · ${key.id}: path grazes ${graze}`);
-    }
+/* ----------------------------------------------------------- content spine --- */
 
-    let subject = null;
-    let fill = 0;
-    if (frame.body !== null) {
-      const body = bodies.find((candidate) => candidate.id === frame.body);
-      const distance = len(sub(key.position, body.position));
-      subject = project(key.position, key.target, key.fov, aspect, body.position);
-      fill = ((Math.atan(body.radius / distance) * DEG) / (key.fov / 2)) * 100;
+const sectionIds = SECTIONS.map((section) => section.id);
+check('sections are unique', new Set(sectionIds).size === SECTIONS.length);
+check('thirteen sections', SECTIONS.length === 13, `found ${SECTIONS.length}`);
 
-      const offFrame = Number.isNaN(subject.x) || Math.abs(subject.x) > 1.05 || Math.abs(subject.y) > 1.15;
-      if (offFrame && !INTENTIONAL_OVERFLOW.has(key.id)) {
-        failures.push(
-          `${viewport.label} · ${key.id}: subject out of frame at (${subject.x.toFixed(2)}, ${subject.y.toFixed(2)})`,
+let previousParam = -Infinity;
+for (const section of SECTIONS) {
+  check(
+    `section "${section.id}" param does not decrease`,
+    section.param >= previousParam - 1e-9,
+    `${previousParam} → ${section.param}`,
+  );
+  previousParam = section.param;
+}
+
+check(
+  'last section sits on the final camera key',
+  Math.abs((SECTIONS.at(-1)?.param ?? 0) - LAST_PARAM) <= 0.25,
+  `close param ${SECTIONS.at(-1)?.param}, LAST_PARAM ${LAST_PARAM}`,
+);
+
+check('six destinations', DESTINATIONS.length === 6, `found ${DESTINATIONS.length}`);
+
+const stationSections = SECTIONS.filter((section) => section.kind === 'station');
+check('one station section per destination', stationSections.length === DESTINATIONS.length);
+
+for (const destination of DESTINATIONS) {
+  const section = stationSections.find((candidate) => candidate.station === destination.id);
+  check(`destination "${destination.id}" has a section`, section !== undefined);
+  if (section === undefined) continue;
+  check(
+    `station "${destination.id}" sits on its camera key`,
+    Math.abs(section.param - CAMERA_PARAMS[section.cameraKey]) < NEAR,
+    `param ${section.param} vs key ${CAMERA_PARAMS[section.cameraKey]}`,
+  );
+}
+
+for (const section of SECTIONS) {
+  if (section.cameraKey === null) continue;
+  const key = KEY_BY_ID[section.cameraKey];
+  check(`section "${section.id}" key exists`, key !== undefined);
+  if (key === undefined) continue;
+  check(
+    `section "${section.id}" param matches key "${key.id}"`,
+    Math.abs(key.param - CAMERA_PARAMS[key.id]) < NEAR,
+  );
+}
+
+const expectedSides = {
+  earth: 'left',
+  moon: 'right',
+  mars: 'left',
+  belt: 'right',
+  jupiter: 'left',
+  sun: 'centre',
+};
+for (const destination of DESTINATIONS) {
+  const section = stationSections.find((candidate) => candidate.station === destination.id);
+  check(
+    `caption side alternates as designed for "${destination.id}"`,
+    section?.captionSide === expectedSides[destination.id],
+    `expected ${expectedSides[destination.id]}, found ${section?.captionSide}`,
+  );
+}
+
+check(
+  'opening pacing is monotonic',
+  OPENING.holdEnd < OPENING.revealEnd &&
+    OPENING.revealEnd < OPENING.exitFrom &&
+    OPENING.exitFrom < OPENING.exitTo &&
+    OPENING.exitTo <= 1,
+  JSON.stringify(OPENING),
+);
+
+/* -------------------------------------------------------------- camera keys --- */
+
+let previousKeyParam = -Infinity;
+for (const key of CAMERA_KEYS) {
+  check(
+    `key "${key.id}" param ascending`,
+    key.param > previousKeyParam + 1e-9,
+    `${previousKeyParam} → ${key.param}`,
+  );
+  previousKeyParam = key.param;
+  check(`key "${key.id}" fov sane`, key.fov > 20 && key.fov < 70, `${key.fov}`);
+  check(`key "${key.id}" frame inside view`, Math.abs(key.frameX) <= 0.6 && Math.abs(key.frameY) <= 0.8);
+}
+
+check(
+  'camera params and keys agree',
+  Object.entries(CAMERA_PARAMS).every(([id, param]) => KEY_BY_ID[id]?.param === param),
+);
+check('last camera key is the overview', LAST_PARAM === CAMERA_PARAMS.overview);
+
+/* ----------------------------------------------------------- composition --- */
+
+/**
+ * Caption side versus subject side: copy on the left needs the subject right.
+ * `centre` sections are allowed a small deliberate offset.
+ */
+for (const section of SECTIONS) {
+  if (section.kind !== 'station') continue;
+  const key = KEY_BY_ID[section.cameraKey];
+  if (key === undefined) continue;
+  if (section.captionSide === 'left') {
+    check(`"${section.id}" subject sits right of the copy`, key.frameX >= 0.2, `frameX ${key.frameX}`);
+  } else if (section.captionSide === 'right') {
+    check(`"${section.id}" subject sits left of the copy`, key.frameX <= -0.2, `frameX ${key.frameX}`);
+  } else {
+    check(`"${section.id}" is centred on purpose`, Math.abs(key.frameX) <= 0.08, `frameX ${key.frameX}`);
+  }
+}
+
+for (const epoch of EPOCHS) {
+  const positions = bodyPositions(epoch.date);
+
+  for (const viewport of VIEWPORTS) {
+    for (const key of CAMERA_KEYS) {
+      const frame = composeCamera(key, positions, viewport);
+      const subject = positions[key.subject];
+      const projection = projectPoint(subject, frame);
+      const wantedX = effectiveFrame(key, viewport).x;
+      const wantedY = effectiveFrame(key, viewport).y;
+
+      check(
+        `[${epoch.label} ${viewport.label}] "${key.id}" subject lands on frameX`,
+        Math.abs(projection.x - wantedX) < 1e-6,
+        `got ${projection.x.toFixed(6)}, wanted ${wantedX}`,
+      );
+      check(
+        `[${epoch.label} ${viewport.label}] "${key.id}" subject lands on frameY`,
+        Math.abs(projection.y - wantedY) < 1e-6,
+        `got ${projection.y.toFixed(6)}, wanted ${wantedY}`,
+      );
+      check(
+        `[${epoch.label} ${viewport.label}] "${key.id}" subject is in front of the camera`,
+        projection.depth > 0,
+        `depth ${projection.depth}`,
+      );
+
+      if (key.absolute === undefined) {
+        // `distance` is measured along the view axis, so compare the axial gap
+        // rather than the radial one — the frame offset moves the camera aside.
+        const distance = effectiveDistance(key, viewport);
+        const axial =
+          (subject[0] - frame.position[0]) * frame.forward[0] +
+          (subject[1] - frame.position[1]) * frame.forward[1] +
+          (subject[2] - frame.position[2]) * frame.forward[2];
+        check(
+          `[${epoch.label} ${viewport.label}] "${key.id}" camera holds its distance`,
+          Math.abs(axial - distance) < 1e-6,
+          `got ${axial.toFixed(6)}, wanted ${distance}`,
         );
-      } else if (offFrame) {
-        notes.push(`${viewport.label} · ${key.id}: subject off frame by design (leading it)`);
+      }
+
+      const body = BODIES[key.subject];
+      const band = SIZE_BANDS[key.id];
+      if (body !== undefined && band !== undefined) {
+        const radius = projectedRadius(body.radius, projection.depth, frame);
+        check(
+          `[${epoch.label} ${viewport.label}] "${key.id}" subject reads at a sane size`,
+          radius >= band[0] && radius <= band[1],
+          `ndc radius ${radius.toFixed(3)} (band ${band[0]}–${band[1]})`,
+        );
       }
     }
 
-    // The opening must read as "somewhere dark, close to something enormous":
-    // the night-side disc in frame, and a real arc of travel to the stage-01
-    // reveal so the first move is a flight, not a nudge.
-    if (key.id === OPENING_KEY) {
-      const earth = bodies.find((candidate) => candidate.id === 'earth');
-      const openingFill = ((Math.atan(earth.radius / len(sub(key.position, earth.position))) * DEG) / (key.fov / 2)) * 100;
-      if (openingFill < 25 || openingFill > 90) {
-        failures.push(`${viewport.label} · opening: Earth disc fill ${openingFill.toFixed(0)}% outside 25–90%`);
-      }
-      const earthKey = keys[1];
-      const travel = len(sub(earthKey.position, key.position));
-      if (travel < earth.radius) {
-        failures.push(`${viewport.label} · opening: reveal travel ${travel.toFixed(2)} is too short (< Earth radius)`);
-      }
-    }
-
-    const sunDistance = len(key.position);
-    const sun = project(key.position, key.target, key.fov, aspect, { x: 0, y: 0, z: 0 });
-    const alignment = dot(
-      norm(sub(key.target, key.position)),
-      norm({ x: -key.position.x, y: -key.position.y, z: -key.position.z }),
-    );
-    // Mirrors CORONA_VIEW_INNER/OUTER in objects/sunBody.ts.
-    const corona = smoothstep(0.5, 0.98, alignment);
-
-    // The regression that started all of this: no halo while parked at a planet.
-    const planetStage = !['outer', 'overview', 'sun', 'asteroid-belt', 'earth-orbit'].includes(key.id);
-    if (planetStage && corona > 0.05) {
-      failures.push(`${viewport.label} · ${key.id}: Sun corona bleeds into a planet frame (${corona.toFixed(2)})`);
-    }
-
-    // Conversely, the moments that are about the Sun must actually show it.
-    if (SUN_CENTRED_STAGES.has(key.id) && (Math.abs(sun.x) > 1.05 || Math.abs(sun.y) > 1.05)) {
-      failures.push(
-        `${viewport.label} · ${key.id}: Sun out of frame at (${sun.x.toFixed(2)}, ${sun.y.toFixed(2)})`,
+    /* --- the Sun must never photobomb a planet portrait or the hero --- */
+    for (const id of ['entry', 'earth', 'moon', 'mars', 'jupiter']) {
+      const key = KEY_BY_ID[id];
+      const frame = composeCamera(key, positions, viewport);
+      const sun = projectPoint(positions.sun, frame);
+      const behind = sun.depth <= 0;
+      const outside = Math.abs(sun.x) > 1.1 || Math.abs(sun.y) > 1.1;
+      check(
+        `[${epoch.label} ${viewport.label}] "${id}" keeps the Sun out of frame`,
+        behind || outside,
+        `sun ndc (${sun.x.toFixed(2)}, ${sun.y.toFixed(2)}) depth ${sun.depth.toFixed(1)}`,
       );
     }
 
-    rows.push({
-      stage: key.id,
-      subjectFill: fill.toFixed(0),
-      subjectAt: subject === null ? '—' : `${subject.x.toFixed(2)}, ${subject.y.toFixed(2)}`,
-      sunFill: ((Math.atan(SUN_RADIUS / sunDistance) * DEG) / (key.fov / 2)) * 100,
-      sunAt: `${sun.x.toFixed(2)}, ${sun.y.toFixed(2)}`,
-      corona: corona.toFixed(2),
-      nearest: `${nearest.id}@${nearest.distance.toFixed(1)}`,
-      step: next ? len(sub(next.position, key.position)).toFixed(1) : '—',
-    });
-  });
-
-  return rows;
-}
-
-console.log('Layout contract check — journey order:', STAGE_ORDER.join(' → '), `(${STAGE_ORDER.length} stages)\n`);
-
-for (const viewport of VIEWPORTS) {
-  const rows = check(viewport);
-  console.log(`── ${viewport.label} (${viewport.width}×${viewport.height})`);
-  console.log('   stage          subjFill%  subject x,y     sunFill%  sun x,y      corona  nearest        step');
-  for (const row of rows) {
-    console.log(
-      `   ${row.stage.padEnd(14)} ${row.subjectFill.padStart(7)}  ${row.subjectAt.padStart(14)} ${row.sunFill.toFixed(0).padStart(8)}  ${row.sunAt.padStart(12)} ${row.corona.padStart(7)}  ${row.nearest.padStart(14)} ${row.step.padStart(6)}`,
+    /* --- the hero: a limb, never a portrait --- */
+    const entry = KEY_BY_ID.entry;
+    const entryFrame = composeCamera(entry, positions, viewport);
+    const earthProjection = projectPoint(positions.earth, entryFrame);
+    const earthRadius = projectedRadius(BODIES.earth.radius, earthProjection.depth, entryFrame);
+    check(
+      `[${epoch.label} ${viewport.label}] hero shows a limb, not a planet portrait`,
+      earthRadius <= 0.46 && earthProjection.y + earthRadius <= -0.12,
+      `ndc radius ${earthRadius.toFixed(3)}, top edge ${(earthProjection.y + earthRadius).toFixed(3)}`,
     );
+    check(
+      `[${epoch.label} ${viewport.label}] hero keeps Earth substantial`,
+      earthRadius >= 0.24,
+      `ndc radius ${earthRadius.toFixed(3)}`,
+    );
+
+    /* --- the Moon shot must not contain Earth --- */
+    const moonFrame = composeCamera(KEY_BY_ID.moon, positions, viewport);
+    const earthFromMoon = projectPoint(positions.earth, moonFrame);
+    check(
+      `[${epoch.label} ${viewport.label}] Moon shot keeps Earth out of frame`,
+      earthFromMoon.depth <= 0 || Math.abs(earthFromMoon.x) > 1.15 || Math.abs(earthFromMoon.y) > 1.15,
+      `earth ndc (${earthFromMoon.x.toFixed(2)}, ${earthFromMoon.y.toFixed(2)}) depth ${earthFromMoon.depth.toFixed(1)}`,
+    );
+
+    /* --- reduced motion: whole keys, never a half-travelled camera --- */
+    for (const sample of [0.3, 0.8, 1.2, 2.5, 3.4, 4.6, 5.2, 6.3, 6.8]) {
+      const cutFrame = sampleCamera(sample, positions, viewport, true);
+      const expected = composeCamera(nearestKey(sample), positions, viewport);
+      check(
+        `[${epoch.label} ${viewport.label}] reduced motion at ${sample} is a still key`,
+        Math.abs(cutFrame.position[0] - expected.position[0]) < 1e-9 &&
+          Math.abs(cutFrame.position[1] - expected.position[1]) < 1e-9 &&
+          Math.abs(cutFrame.position[2] - expected.position[2]) < 1e-9 &&
+          Math.abs(cutFrame.fov - expected.fov) < 1e-9,
+        'cut frame differs from its nearest key',
+      );
+    }
+
+    /* --- the flight never clips a body --- */
+    for (const body of Object.values(BODIES)) {
+      const clearance = body.radius * 1.15 + 0.05;
+      let worst = Number.POSITIVE_INFINITY;
+      let worstParam = 0;
+      const samples = 400;
+      for (let index = 0; index <= samples; index += 1) {
+        const param = (index / samples) * LAST_PARAM;
+        const frame = sampleCamera(param, positions, viewport, false);
+        const distance = Math.hypot(
+          frame.position[0] - positions[body.id][0],
+          frame.position[1] - positions[body.id][1],
+          frame.position[2] - positions[body.id][2],
+        );
+        if (distance < worst) {
+          worst = distance;
+          worstParam = param;
+        }
+      }
+      check(
+        `[${epoch.label} ${viewport.label}] flight clears ${body.id}`,
+        worst >= clearance,
+        `closest ${worst.toFixed(3)} at param ${worstParam.toFixed(2)} (needs ${clearance.toFixed(3)})`,
+      );
+    }
   }
-  console.log('');
 }
 
-if (notes.length > 0) {
-  console.log('Notes (intentional):');
-  for (const note of notes) console.log(`  · ${note}`);
-  console.log('');
-}
+/* --------------------------------------------------------------- reporting --- */
 
-if (failures.length > 0) {
-  console.error(`FAIL — ${failures.length} contract violation(s):`);
-  for (const failure of failures) console.error(`  ✗ ${failure}`);
-  process.exit(1);
+const label = `${checks.length - failures.length}/${checks.length} checks passed`;
+if (failures.length === 0) {
+  console.log(`check-layout: PASS — ${label}`);
+  console.log(
+    `  ${SECTIONS.length} sections · ${DESTINATIONS.length} destinations · ${CAMERA_KEYS.length} camera keys · ${EPOCHS.length} epochs × ${VIEWPORTS.length} viewports`,
+  );
+  console.log(`  dates sampled: ${EPOCHS.map((epoch) => formatIsoDate(epoch.date)).join(', ')}`);
+} else {
+  console.log(`check-layout: FAIL — ${label}`);
+  for (const failure of failures) {
+    console.log(`  ✗ ${failure}`);
+  }
+  process.exitCode = 1;
 }
-
-console.log('PASS — framing, collisions, path continuity and corona reach all within contract.');

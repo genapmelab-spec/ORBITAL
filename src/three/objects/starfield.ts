@@ -5,18 +5,16 @@ import {
   Points,
   ShaderMaterial,
 } from 'three';
-import { STAR_FRAGMENT, STAR_VERTEX } from '../shaders/points';
-import { createRandom, randomDirection } from '../random';
-import type { FrameContext, SceneObject } from '../types';
+import { STAR_FRAGMENT, STAR_VERTEX } from '../shaders/points.ts';
+import { createRandom, randomDirection } from '../systems/random.ts';
+import type { FrameContext, SceneObject } from '../types.ts';
 
 /**
  * Starfield. Three concentric shells give depth; each star owns a size, a
  * twinkle phase and a temperature, so the field reads as sky rather than noise.
- * Scroll velocity leans every star toward the viewer — the signature "the ship
- * is moving" cue from DESIGN.md, kept as a uniform only.
+ * Travel speed leans every star toward the viewer through one uniform.
  */
 
-/** Shell radii in scene units — beyond the overview camera, inside the far plane. */
 export const STAR_SHELL_RADII: readonly number[] = [1500, 2000, 2400];
 export const STAR_SIZE_MIN = 1;
 export const STAR_SIZE_MAX = 3.2;
@@ -25,7 +23,6 @@ export const STARFIELD_SEED = 0x51a1f3;
 export const STRETCH_REFERENCE_SPEED = 70;
 
 export interface StarfieldHandle extends SceneObject {
-  /** Reduces the rendered count without rebuilding buffers. */
   setCount(count: number): void;
 }
 
@@ -44,8 +41,7 @@ export function createStarfield(count: number, pixelRatio: number): StarfieldHan
     positions[index * 3 + 1] = y * radius;
     positions[index * 3 + 2] = z * radius;
 
-    const magnitude = random();
-    sizes[index] = STAR_SIZE_MIN + magnitude * (STAR_SIZE_MAX - STAR_SIZE_MIN);
+    sizes[index] = STAR_SIZE_MIN + random() * (STAR_SIZE_MAX - STAR_SIZE_MIN);
     phases[index] = random();
     // Most stars cool, a minority burn warm — matches the grade in DESIGN.md.
     temperatures[index] = random() < 0.72 ? random() * 0.35 : 0.55 + random() * 0.45;
@@ -82,13 +78,12 @@ export function createStarfield(count: number, pixelRatio: number): StarfieldHan
     root: points,
     update(ctx: FrameContext): void {
       uniforms.uTime.value = ctx.elapsed;
-      uniforms.uPixelRatio.value = pixelRatio;
+      uniforms.uPixelRatio.value = ctx.pixelRatio;
       const target = Math.min(ctx.speed / STRETCH_REFERENCE_SPEED, 1);
       uniforms.uStretch.value += (target - uniforms.uStretch.value) * Math.min(ctx.dt * 2.4, 1);
     },
     setCount(next: number): void {
-      const safe = Math.min(Math.max(Math.round(next), 0), count);
-      geometry.setDrawRange(0, safe);
+      geometry.setDrawRange(0, Math.min(Math.max(Math.round(next), 0), count));
     },
     dispose(): void {
       geometry.dispose();

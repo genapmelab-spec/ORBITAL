@@ -1,6 +1,6 @@
 /**
- * Shared GLSL. Every visual in the scene is procedural: no textures, no asset
- * bytes, no licensing surface (Orbital Docs/AGENTS.md).
+ * Shared GLSL. Every surface in this project is procedural: no textures, no
+ * image bytes, nothing to license (docs/AGENTS.md).
  */
 
 export const GLSL_TONEMAP = /* glsl */ `
@@ -45,12 +45,5 @@ float fbm5(vec3 p) {
 
 float fbm2(vec3 p) {
   return 0.667 * vnoise(p) + 0.333 * vnoise(p * 2.03);
-}
-`;
-
-/** Clamp helper reused by the object layer's CPU mirrors of these curves. */
-export const GLSL_MATH = /* glsl */ `
-float saturate(float x) {
-  return clamp(x, 0.0, 1.0);
 }
 `;

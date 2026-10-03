@@ -1,0 +1,36 @@
+---
+import { DESTINATIONS, type CaptionSide, type Destination } from '../content/experience.ts';
+
+interface Props {
+  destination: Destination;
+  param: number;
+  side: CaptionSide;
+}
+
+/**
+ * A destination. The format never changes — index, name, one fact, one
+ * explanation — and the copy sits on the opposite side of the 3D subject, which
+ * `tools/check-layout.mjs` asserts against the camera key's frameX.
+ */
+const { destination, param, side } = Astro.props;
+const total = String(DESTINATIONS.length).padStart(2, '0');
+---
+
+<section
+  class="section section--station"
+  id={destination.id}
+  data-section
+  data-id={destination.id}
+  data-side={side}
+  data-param={param}
+  aria-labelledby={`${destination.id}-name`}
+>
+  <div class="station__copy">
+    <p class="station__index u-mono">
+      <strong>{String(destination.index).padStart(2, '0')}</strong> / {total}
+    </p>
+    <h2 class="station__name" id={`${destination.id}-name`} data-reveal>{destination.name}</h2>
+    <p class="station__fact" data-reveal>{destination.fact}</p>
+    <p class="station__context" data-reveal>{destination.context}</p>
+  </div>
+</section>

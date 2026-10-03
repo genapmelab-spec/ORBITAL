@@ -1,58 +1,70 @@
-/* ==========================================================================
-   ORBITAL — design tokens (single source: Orbital Docs/DESIGN.md)
-   Tailwind v4 theme mapping + raw custom properties for the scene layer.
-   ========================================================================== */
-
-@theme {
-  /* Surfaces — cold, deep space */
-  --color-void: #030510;
-  --color-space: #0a0f1e;
-
-  /* Text */
-  --color-text: #f2f5fa;
-  --color-muted: #8b95a9;
-
-  /* Accents — ember is the ONLY interaction color */
-  --color-ember: #ff6b35;
-  --color-solar: #ffc15e; /* focus rings, telemetry, sun light */
-  --color-ion: #7dd3fc; /* atmosphere & data only, never buttons */
-
-  /* Typography */
-  --font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
-  --font-body: 'Inter', system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
-
-  /* Spacing rhythm — generous, cinematic */
-  --spacing-gutter: 1.5rem;
-  --spacing-stage-min: 100svh;
-
-  /* Motion — weightless, long ease-outs, never bouncy */
-  --ease-drift: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
-  --duration-caption: 900ms;
-  --duration-scene: 1400ms;
-}
+/**
+ * ORBITAL design tokens — the only place the page writes down a colour, a type
+ * size, a distance or a duration. Components and section CSS consume these; the
+ * 3D layer mirrors the colours in `src/three/systems/palette.ts`.
+ *
+ * Palette logic (docs/DESIGN.md): the page is a dark room with real light in it.
+ * Cold near-black ground, bone text, one hot interaction colour, one solar
+ * highlight, one ion blue reserved for data. Nothing else.
+ */
 
 :root {
-  /* Scene-layer variables (used by shaders, canvas overlays, scrim) */
-  --orb-void: #030510;
-  --orb-space: #0a0f1e;
-  --orb-text: #f2f5fa;
-  --orb-muted: #8b95a9;
-  --orb-ember: #ff6b35;
-  --orb-solar: #ffc15e;
-  --orb-ion: #7dd3fc;
+  color-scheme: dark;
 
-  /* Caption scrim — keeps type AA against bright planetary limbs */
-  --orb-scrim: rgb(3 5 16 / 0.62);
+  /* Colour */
+  --void: #05060b;
+  --deep: #0a0d15;
+  --ink: #edeff5;
+  --muted: #8b93a7;
+  --faint: #5a6172;
+  --ember: #ff5c2e;
+  --solar: #ffc46b;
+  --ion: #86d3ff;
+  --hairline: rgb(139 147 167 / 0.2);
+  --scrim: rgb(5 6 11 / 0.66);
+  --scrim-soft: rgb(5 6 11 / 0.34);
+  --grad-ember: linear-gradient(118deg, #ff5c2e 0%, #ff8a3d 55%, #ffc46b 120%);
+  --grad-deep: linear-gradient(180deg, rgb(5 6 11 / 0.92) 0%, rgb(5 6 11 / 0) 100%);
 
-  /* Hairlines, not cards */
-  --orb-hairline: rgb(139 149 169 / 0.22);
+  /* Type */
+  --font-voice: 'Instrument Serif', 'Iowan Old Style', 'Times New Roman', serif;
+  --font-ui: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-data: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 
-  /* Chrome visibility driven by scroll (nav.ts toggles --chrome-settled) */
-  --chrome-opacity: 0;
-  --chrome-y: -0.75rem;
+  --t-meta: 0.72rem;
+  --t-whisper: 0.95rem;
+  --t-body: 1.0625rem;
+  --t-lead: clamp(1.05rem, 1.35vw, 1.2rem);
+  --t-fact: clamp(1.2rem, 2vw, 1.75rem);
+  --t-h2: clamp(1.65rem, 3.2vw, 2.6rem);
+  --t-station: clamp(2.1rem, 5.4vw, 4.2rem);
+  --t-voice: clamp(1.95rem, 5vw, 3.9rem);
+  --t-hero: clamp(2.5rem, 6.6vw, 5.2rem);
+  --track-mono: 0.16em;
+  --track-tight: -0.02em;
 
-  /* Journey progress set by scrollController (0..1) */
+  /* Layout */
+  --gutter: clamp(1.25rem, 4.2vw, 4.5rem);
+  --measure: min(36rem, 86vw);
+  --measure-tight: min(30rem, 82vw);
+  --section-pad: clamp(5.5rem, 14vh, 11rem);
+  --tilt-a: -5vw;
+  --tilt-b: 3.5vw;
+  --tilt-c: 7.5vw;
+  --z-canvas: 0;
+  --z-content: 1;
+  --z-chrome: 20;
+  --z-veil: 30;
+
+  /* Motion */
+  --dur-quick: 180ms;
+  --dur-base: 380ms;
+  --dur-slow: 640ms;
+  --dur-chrome: 420ms;
+  --ease-out: cubic-bezier(0.16, 0.84, 0.28, 1);
+  --ease-soft: cubic-bezier(0.33, 0, 0.2, 1);
+  --focus-ring: 0 0 0 2px var(--void), 0 0 0 4px var(--solar);
+
+  /* Runtime — written by src/scripts/scroll.ts */
   --journey-progress: 0;
 }

@@ -1,6 +1,5 @@
 import {
   Color,
-  Group,
   IcosahedronGeometry,
   InstancedMesh,
   Matrix4,
@@ -8,164 +7,181 @@ import {
   ShaderMaterial,
   Vector3,
 } from 'three';
-import { toSceneRadius } from '../anchors';
-import { createRandom, randomDirection } from '../random';
-import { ROCK_FRAGMENT, ROCK_VERTEX } from '../shaders/rock';
-import type { FrameContext, SceneObject } from '../types';
+import { ROCK_FRAGMENT, ROCK_VERTEX } from '../shaders/rock.ts';
+import {
+  BELT_INNER_AU,
+  BELT_MEAN_AU,
+  BELT_MEAN_PHASE_AT_J2000,
+  BELT_OUTER_AU,
+  BELT_THICKNESS_RATIO,
+  daysSinceJ2000,
+  orbitalRatePerDay,
+} from '../systems/epoch.ts';
+import { toSceneRadius } from '../camera/anchors.ts';
+import { createRandom, randomDirection } from '../systems/random.ts';
+import type { FrameContext, SceneObject } from '../types.ts';
 
 /**
- * The asteroid belt and the Kuiper belt — the two places where the Solar System
- * stops being about planets. Both are single instanced draws: thousands of
- * rocks, one material, no per-frame geometry work. The camera flies through
- * them, so they are staged as environment, never as scenery behind glass.
+ * The asteroid belt — the place where the Solar System stops being about
+ * planets. One instanced draw, one material, no per-frame geometry work.
+ *
+ * Two populations, because the belt needs to be honest *and* legible:
+ *
+ * - the **field**: rocks spread over the real 2.2 – 3.2 AU annulus, so the whole
+ *   ring reads as a ring from outside and the inner edge visibly outruns the
+ *   outer edge, since every rate comes from Kepler's third law;
+ * - the **weather**: a local cloud of larger rocks around the point the flight
+ *   crosses, which is why the copy can say rock starts behaving like weather
+ *   without pretending the belt is crowded. It is still emptier than any picture
+ *   of it ever suggests.
  */
 
-/** Capacity is allocated once at the high-tier count so a tier upgrade works. */
-export const ASTEROID_CAPACITY = 1500;
-export const KUIPER_CAPACITY = 900;
-
-/** Belt extent in AU — matches the journey metadata (2.2–3.2 AU). */
-export const BELT_INNER_AU = 2.2;
-export const BELT_OUTER_AU = 3.2;
-/** Kuiper extent in AU — matches the outer-system metadata (30–50 AU). */
-export const KUIPER_INNER_AU = 30;
-export const KUIPER_OUTER_AU = 50;
-
-/** Vertical scatter as a fraction of orbit radius: thin belt, fat Kuiper cloud. */
-export const BELT_THICKNESS = 0.035;
-export const KUIPER_THICKNESS = 0.075;
-
-export const BELT_ROCK_MIN = 0.015;
-export const BELT_ROCK_MAX = 0.09;
-export const KUIPER_ROCK_MIN = 0.03;
-export const KUIPER_ROCK_MAX = 0.14;
-
-/** Slow field rotation, radians per second — orbital drift, not a turntable. */
-export const BELT_DRIFT = 0.006;
+export const BELT_FIELD_COUNT = 1500;
+export const BELT_CLOUD_COUNT = 200;
+export const BELT_CAPACITY = BELT_FIELD_COUNT + BELT_CLOUD_COUNT;
 export const BELT_SEED = 0x7a3c11;
-export const KUIPER_SEED = 0x1f5b2e;
+export const BELT_ROCK_MIN = 0.08;
+export const BELT_ROCK_MAX = 1.3;
+export const BELT_CLOUD_INNER = 1.8;
+export const BELT_CLOUD_OUTER = 15;
 
 export interface BeltHandle extends SceneObject {
-  /** Fraction of the allocated rocks to draw (0..1) — the tier lever. */
+  /** Fraction of the allocated rocks to draw (0..1) — the quality lever. */
   setDensity(fraction: number): void;
+  /** Re-place every rock for a new date. */
+  setEpoch(date: Date): void;
 }
 
-interface FieldOptions {
-  readonly capacity: number;
-  readonly inner: number;
-  readonly outer: number;
-  readonly thickness: number;
-  readonly rockMin: number;
-  readonly rockMax: number;
-  readonly seed: number;
-  readonly baseColor: string;
-  readonly accentColor: string;
-  readonly lightColor: Color;
+interface Rock {
+  readonly angleAtJ2000: number;
+  readonly ratePerDay: number;
+  readonly radiusScene: number;
+  readonly height: number;
+  readonly size: Vector3;
+  readonly axis: Vector3;
+  readonly spin: number;
+  /** Cloud rocks orbit with the crossing point, not with the mean belt. */
+  readonly cloudAngleOffset: number;
+  readonly cloudRadialOffset: number;
 }
 
-function createField(options: FieldOptions): { mesh: InstancedMesh; material: ShaderMaterial; geometry: IcosahedronGeometry } {
-  const random = createRandom(options.seed);
+export function createBelt(lightColor: Color, sunDirection: Vector3): BeltHandle {
+  const random = createRandom(BELT_SEED);
   const geometry = new IcosahedronGeometry(1, 0);
   const material = new ShaderMaterial({
     vertexShader: ROCK_VERTEX,
     fragmentShader: ROCK_FRAGMENT,
     uniforms: {
-      uBaseColor: { value: new Color(options.baseColor) },
-      uAccentColor: { value: new Color(options.accentColor) },
-      uLightColor: { value: options.lightColor.clone() },
+      uBaseColor: { value: new Color('#7d7469') },
+      uAccentColor: { value: new Color('#3b3630') },
+      uLightColor: { value: lightColor.clone() },
+      uSunDirection: { value: sunDirection.clone() },
     },
   });
 
-  const mesh = new InstancedMesh(geometry, material, options.capacity);
+  const mesh = new InstancedMesh(geometry, material, BELT_CAPACITY);
   mesh.frustumCulled = false;
+
+  const rocks: Rock[] = [];
+  const cloudRadius = toSceneRadius(BELT_MEAN_AU);
+
+  // The cloud is generated first: `setDensity` trims the tail of the instance
+  // buffer, and the crossing must be the last thing to disappear.
+  for (let index = 0; index < BELT_CLOUD_COUNT; index += 1) {
+    const distance =
+      BELT_CLOUD_INNER + Math.pow(random(), 0.7) * (BELT_CLOUD_OUTER - BELT_CLOUD_INNER);
+    const direction = random() * Math.PI * 2;
+    const size = 0.14 + random() * 0.62;
+    const [ax, ay, az] = randomDirection(random);
+    rocks.push({
+      angleAtJ2000: 0,
+      ratePerDay: orbitalRatePerDay(BELT_MEAN_AU),
+      radiusScene: cloudRadius,
+      height: (random() * 2 - 1) * Math.min(distance * 0.35, 3.4),
+      size: randomScale(random, size),
+      axis: new Vector3(ax, ay, az).normalize(),
+      spin: random() * Math.PI,
+      cloudAngleOffset: (Math.cos(direction) * distance) / cloudRadius,
+      cloudRadialOffset: Math.sin(direction) * distance,
+    });
+  }
+
+  for (let index = 0; index < BELT_FIELD_COUNT; index += 1) {
+    const au = BELT_INNER_AU + (BELT_OUTER_AU - BELT_INNER_AU) * Math.pow(random(), 0.85);
+    const radiusScene = toSceneRadius(au);
+    // Power law: mostly gravel, a few boulders, so the field never looks like
+    // uniform confetti.
+    const size = BELT_ROCK_MIN + (BELT_ROCK_MAX - BELT_ROCK_MIN) * Math.pow(random(), 2.6);
+    const [ax, ay, az] = randomDirection(random);
+    rocks.push({
+      angleAtJ2000: random() * Math.PI * 2,
+      ratePerDay: orbitalRatePerDay(au),
+      radiusScene,
+      height: (random() * 2 - 1) * BELT_THICKNESS_RATIO * radiusScene,
+      size: randomScale(random, size),
+      axis: new Vector3(ax, ay, az).normalize(),
+      spin: random() * Math.PI,
+      cloudAngleOffset: 0,
+      cloudRadialOffset: 0,
+    });
+  }
 
   const matrix = new Matrix4();
   const position = new Vector3();
   const rotation = new Quaternion();
   const scale = new Vector3();
 
-  for (let index = 0; index < options.capacity; index += 1) {
-    const radial = options.inner + (options.outer - options.inner) * Math.pow(random(), 0.85);
-    const angle = random() * Math.PI * 2;
-    const vertical = (random() * 2 - 1) * options.thickness * radial;
-    position.set(Math.cos(angle) * radial, vertical, Math.sin(angle) * radial);
+  function place(date: Date): void {
+    const days = daysSinceJ2000(date);
+    const cloudAngle = BELT_MEAN_PHASE_AT_J2000 + orbitalRatePerDay(BELT_MEAN_AU) * days;
 
-    const [rx, ry, rz] = randomDirection(random);
-    rotation.setFromAxisAngle(new Vector3(rx, ry, rz).normalize(), random() * Math.PI);
-
-    const size = options.rockMin + random() * (options.rockMax - options.rockMin);
-    scale.set(size * (0.6 + random() * 0.8), size * (0.6 + random() * 0.8), size * (0.6 + random() * 0.8));
-
-    matrix.compose(position, rotation, scale);
-    mesh.setMatrixAt(index, matrix);
+    for (let index = 0; index < rocks.length; index += 1) {
+      const rock = rocks[index] as Rock;
+      const isCloud = index < BELT_CLOUD_COUNT;
+      const angle = isCloud
+        ? cloudAngle + rock.cloudAngleOffset
+        : rock.angleAtJ2000 + rock.ratePerDay * days;
+      const radius = isCloud ? rock.radiusScene + rock.cloudRadialOffset : rock.radiusScene;
+      position.set(Math.cos(angle) * radius, rock.height, Math.sin(angle) * radius);
+      rotation.setFromAxisAngle(rock.axis, rock.spin + days * 0.02);
+      scale.copy(rock.size);
+      matrix.compose(position, rotation, scale);
+      mesh.setMatrixAt(index, matrix);
+    }
+    mesh.instanceMatrix.needsUpdate = true;
   }
-  mesh.instanceMatrix.needsUpdate = true;
 
-  return { mesh, material, geometry };
-}
-
-export function createBelts(
-  asteroidCount: number,
-  kuiperCount: number,
-  asteroidLightColor: Color,
-  kuiperLightColor: Color,
-): BeltHandle {
-  const group = new Group();
-
-  const belt = createField({
-    capacity: ASTEROID_CAPACITY,
-    inner: toSceneRadius(BELT_INNER_AU),
-    outer: toSceneRadius(BELT_OUTER_AU),
-    thickness: BELT_THICKNESS,
-    rockMin: BELT_ROCK_MIN,
-    rockMax: BELT_ROCK_MAX,
-    seed: BELT_SEED,
-    baseColor: '#7d7469',
-    accentColor: '#3b3630',
-    lightColor: asteroidLightColor,
-  });
-
-  const kuiper = createField({
-    capacity: KUIPER_CAPACITY,
-    inner: toSceneRadius(KUIPER_INNER_AU),
-    outer: toSceneRadius(KUIPER_OUTER_AU),
-    thickness: KUIPER_THICKNESS,
-    rockMin: KUIPER_ROCK_MIN,
-    rockMax: KUIPER_ROCK_MAX,
-    seed: KUIPER_SEED,
-    baseColor: '#6f7c8c',
-    accentColor: '#2b3442',
-    lightColor: kuiperLightColor,
-  });
-
-  group.add(belt.mesh, kuiper.mesh);
-
-  const beltMesh = belt.mesh;
-  const kuiperMesh = kuiper.mesh;
-  beltMesh.count = Math.min(asteroidCount, ASTEROID_CAPACITY);
-  kuiperMesh.count = Math.min(kuiperCount, KUIPER_CAPACITY);
+  place(new Date());
+  mesh.count = BELT_CAPACITY;
 
   return {
-    root: group,
-
-    update(ctx: FrameContext): void {
-      group.rotation.y += ctx.dt * BELT_DRIFT;
+    root: mesh,
+    update(_ctx: FrameContext): void {
+      // Motion belongs to the model, not to the renderer: a still date means a
+      // still belt, and `setEpoch` is the only thing that moves it.
     },
-
     setDensity(fraction: number): void {
       const safe = Math.min(Math.max(fraction, 0), 1);
-      beltMesh.count = Math.round(ASTEROID_CAPACITY * safe);
-      kuiperMesh.count = Math.round(KUIPER_CAPACITY * safe);
+      // The cloud is trimmed last: it is what makes the crossing legible.
+      mesh.count =
+        Math.round(BELT_CLOUD_COUNT * Math.min(safe * 1.6, 1)) +
+        Math.round(BELT_FIELD_COUNT * safe);
     },
-
+    setEpoch(date: Date): void {
+      place(date);
+    },
     dispose(): void {
-      belt.geometry.dispose();
-      belt.material.dispose();
-      kuiper.geometry.dispose();
-      kuiper.material.dispose();
-      beltMesh.removeFromParent();
-      kuiperMesh.removeFromParent();
-      group.removeFromParent();
+      geometry.dispose();
+      material.dispose();
+      mesh.removeFromParent();
     },
   };
+}
+
+function randomScale(random: () => number, size: number): Vector3 {
+  return new Vector3(
+    size * (0.6 + random() * 0.8),
+    size * (0.6 + random() * 0.8),
+    size * (0.6 + random() * 0.8),
+  );
 }

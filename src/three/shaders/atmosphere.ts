@@ -1,4 +1,4 @@
-import { GLSL_TONEMAP } from './common';
+import { GLSL_TONEMAP } from './common.ts';
 
 /**
  * Atmosphere shell — a slightly larger sphere rendered additively. The rim

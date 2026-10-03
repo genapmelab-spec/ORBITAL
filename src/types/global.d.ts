@@ -1,15 +1,11 @@
-/**
- * Payload written by the inline pre-paint capability probe in Base.astro.
- * Feature/perf detection only — no user-agent sniffing (AGENTS.md).
- */
+export {};
+
 declare global {
   interface Window {
+    /** Written by the pre-paint probe in src/layouts/Base.astro. */
     __ORBITAL__?: {
       webgl: boolean;
-      tier: 'high' | 'medium' | 'low';
       reducedMotion: boolean;
     };
   }
 }
-
-export {};

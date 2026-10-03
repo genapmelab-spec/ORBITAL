@@ -1,49 +1,42 @@
 import {
   AdditiveBlending,
   Color,
-  DoubleSide,
   FrontSide,
   Group,
   Mesh,
-  RingGeometry,
   ShaderMaterial,
   SphereGeometry,
   Vector3,
 } from 'three';
-import { sunIntensityAt } from '../anchors';
-import type { BodyId, BodySpec } from '../anchors';
-import type { QualityProfile } from '../quality';
-import { ATMOSPHERE_FRAGMENT, ATMOSPHERE_VERTEX } from '../shaders/atmosphere';
-import { RING_FRAGMENT, RING_VERTEX } from '../shaders/ring';
-import { PLANET_FRAGMENT, PLANET_VERTEX } from '../shaders/surface';
-import type { FrameContext, SceneObject } from '../types';
+import { sunIntensityAt, type BodySpec } from '../camera/anchors.ts';
+import { SUN_COLOR } from '../camera/anchors.ts';
+import { daysSinceJ2000 } from '../systems/epoch.ts';
+import { ATMOSPHERE_FRAGMENT, ATMOSPHERE_VERTEX } from '../shaders/atmosphere.ts';
+import { PLANET_FRAGMENT, PLANET_VERTEX } from '../shaders/surface.ts';
+import type { QualityProfile } from '../systems/quality.ts';
+import type { FrameContext, SceneObject } from '../types.ts';
 
 /**
- * A planet. One sphere, one shader, optional atmosphere shell and ring system.
- * Tilt lives on a parent group so the spin axis — and the ring plane — stay
- * correct, which is what makes Uranus read as "the one on its side".
+ * A planet: one sphere, one shader, an optional atmosphere shell. Tilt lives on
+ * a parent group so the spin axis is correct; rotation and light both come from
+ * the model's date, so nothing here is decorative.
  */
 
-/** Surface detail per scene unit of radius: small bodies stop at a coarse mesh. */
 export const SURFACE_SEGMENT_PER_RADIUS = 26;
 export const SURFACE_SEGMENTS_MIN = 18;
 export const SURFACE_SEGMENTS_MAX = 72;
-/** Ring tessellation: high enough that the banding has no visible facets. */
-export const RING_THETA_SEGMENTS = 180;
+/** Spin continues between date changes, slowly, so a still world still lives. */
+export const SPIN_DRIFT_PER_SECOND = 0.01;
 
 export interface PlanetOptions {
   readonly spec: BodySpec;
-  readonly radius: number;
-  readonly position: Vector3;
-  readonly sunDirection: Vector3;
-  /** Sun colour premultiplied by the compressed distance falloff. */
-  readonly lightColor: Color;
   readonly profile: QualityProfile;
 }
 
 export interface PlanetHandle extends SceneObject {
-  readonly id: BodyId;
-  readonly radius: number;
+  readonly spec: BodySpec;
+  /** Re-place the body, re-light it for its real distance, and set its spin. */
+  setState(position: readonly [number, number, number], au: number, date: Date): void;
   setAtmosphereVisible(visible: boolean): void;
 }
 
@@ -55,26 +48,26 @@ function surfaceSegments(radius: number): number {
 }
 
 export function createPlanet(options: PlanetOptions): PlanetHandle {
-  const { spec, radius, position, sunDirection, lightColor, profile } = options;
-
+  const { spec, profile } = options;
   const group = new Group();
-  group.position.copy(position);
 
   const axis = new Group();
   axis.rotation.z = spec.tilt;
   group.add(axis);
 
-  const segments = surfaceSegments(radius);
-  const surfaceGeometry = new SphereGeometry(radius, segments, Math.round(segments / 2));
+  const segments = surfaceSegments(spec.radius);
+  const surfaceGeometry = new SphereGeometry(spec.radius, segments, Math.round(segments / 2));
   const surfaceUniforms = {
     uTime: { value: 0 },
     uBaseColor: { value: new Color(spec.baseColor) },
     uAccentColor: { value: new Color(spec.accentColor) },
-    uLightColor: { value: lightColor.clone() },
-    uSunDirection: { value: sunDirection.clone() },
-    uBandFrequency: { value: spec.bandFreq },
+    uLightColor: { value: new Color(SUN_COLOR) },
+    uSunDirection: { value: new Vector3(0, 1, 0) },
+    uBandFrequency: { value: spec.bandFrequency },
     uBandStrength: { value: spec.bandStrength },
-    uNoiseScale: { value: 3.2 / Math.max(radius, 0.2) },
+    uNoiseScale: { value: 3.2 / Math.max(spec.radius, 0.2) },
+    // Airless bodies keep a hard day/night line; worlds with air soften it.
+    uTerminator: { value: spec.atmosphere === null ? 0.035 : 0.14 },
   };
   const surfaceMaterial = new ShaderMaterial({
     vertexShader: PLANET_VERTEX,
@@ -88,13 +81,13 @@ export function createPlanet(options: PlanetOptions): PlanetHandle {
   let atmosphereMaterial: ShaderMaterial | null = null;
   if (spec.atmosphere !== null) {
     const { scale, intensity, power, tint } = spec.atmosphere;
-    const atmosphereGeometry = new SphereGeometry(radius * scale, 48, 24);
+    const atmosphereGeometry = new SphereGeometry(spec.radius * scale, 48, 24);
     atmosphereMaterial = new ShaderMaterial({
       vertexShader: ATMOSPHERE_VERTEX,
       fragmentShader: ATMOSPHERE_FRAGMENT,
       uniforms: {
         uTint: { value: new Color(tint) },
-        uSunDirection: { value: sunDirection.clone() },
+        uSunDirection: { value: new Vector3(0, 1, 0) },
         uPower: { value: power },
         uIntensity: { value: intensity },
       },
@@ -109,49 +102,41 @@ export function createPlanet(options: PlanetOptions): PlanetHandle {
     group.add(atmosphereMesh);
   }
 
-  let ringMesh: Mesh | null = null;
-  let ringMaterial: ShaderMaterial | null = null;
-  if (spec.ring !== null && profile.rings) {
-    const inner = radius * spec.ring.inner;
-    const outer = radius * spec.ring.outer;
-    const ringGeometry = new RingGeometry(inner, outer, RING_THETA_SEGMENTS, 1);
-    ringMaterial = new ShaderMaterial({
-      vertexShader: RING_VERTEX,
-      fragmentShader: RING_FRAGMENT,
-      uniforms: {
-        uTint: { value: new Color(spec.ring.tint) },
-        uLightColor: { value: lightColor.clone().multiplyScalar(0.9) },
-        uSunDirection: { value: sunDirection.clone() },
-        uPlanetCenter: { value: position.clone() },
-        uPlanetRadius: { value: radius },
-        uInnerRadius: { value: inner },
-        uOuterRadius: { value: outer },
-        uOpacity: { value: spec.ring.opacity },
-      },
-      transparent: true,
-      depthWrite: false,
-      side: DoubleSide,
-    });
-    ringMesh = new Mesh(ringGeometry, ringMaterial);
-    // RingGeometry is authored in XY: lay it into the body's equatorial plane.
-    ringMesh.rotation.x = -Math.PI / 2;
-    ringMesh.renderOrder = 1;
-    axis.add(ringMesh);
-  }
+  const sunDirection = new Vector3();
+  const lightColor = new Color();
+  let spinBase = 0;
 
   return {
-    id: spec.id,
-    radius,
+    spec,
     root: group,
 
     update(ctx: FrameContext): void {
       surfaceUniforms.uTime.value = ctx.elapsed;
-      surface.rotation.y += spec.spin * ctx.dt;
-      if (ringMesh !== null) ringMesh.rotation.z += spec.spin * ctx.dt * 0.15;
+      surface.rotation.y = spinBase + ctx.elapsed * SPIN_DRIFT_PER_SECOND;
+    },
+
+    setState(position, au, date): void {
+      group.position.set(position[0], position[1], position[2]);
+      // The Sun sits at the scene origin, so the light direction is the body's
+      // own bearing, reversed — and its strength is its real distance.
+      sunDirection.set(-position[0], -position[1], -position[2]).normalize();
+      lightColor.set(SUN_COLOR).multiplyScalar(sunIntensityAt(au));
+      surfaceUniforms.uSunDirection.value.copy(sunDirection);
+      surfaceUniforms.uLightColor.value.copy(lightColor);
+      if (atmosphereMaterial !== null) {
+        const uniform = atmosphereMaterial.uniforms.uSunDirection;
+        if (uniform !== undefined) {
+          uniform.value.copy(sunDirection);
+        }
+      }
+      spinBase = spec.spinPerDay * daysSinceJ2000(date);
+      surface.rotation.y = spinBase;
     },
 
     setAtmosphereVisible(visible: boolean): void {
-      if (atmosphereMesh !== null) atmosphereMesh.visible = visible && profile.atmosphere;
+      if (atmosphereMesh !== null) {
+        atmosphereMesh.visible = visible && profile.atmosphere;
+      }
     },
 
     dispose(): void {
@@ -162,19 +147,9 @@ export function createPlanet(options: PlanetOptions): PlanetHandle {
         atmosphereMaterial?.dispose();
         atmosphereMesh.removeFromParent();
       }
-      if (ringMesh !== null) {
-        ringMesh.geometry.dispose();
-        ringMaterial?.dispose();
-        ringMesh.removeFromParent();
-      }
       surface.removeFromParent();
       axis.removeFromParent();
       group.removeFromParent();
     },
   };
-}
-
-/** Distance falloff in one place: every body and its rings share this light. */
-export function lightColorFor(au: number, sunColor: Color): Color {
-  return sunColor.clone().multiplyScalar(sunIntensityAt(au));
 }
