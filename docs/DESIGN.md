@@ -52,6 +52,12 @@ Because there are no images, brightness has to be manufactured. Three rules:
 3. **Light that has no surface is additive.** Coronae, halos, the thread, the
    pulsar beams and every point cloud use additive blending with `depthWrite:false`,
    so glow adds instead of occluding.
+4. **The DOM has one glow, and it obeys rule 3.** A hovered or focused row of the
+   index sheet is washed in its rung's `--accent`, edged with 2px of the same
+   value, and lets it spill as light — a `box-shadow` with no offset and a
+   negative spread, plus a matching `text-shadow` on the name and arrow. It lights
+   the row without pretending the row is raised, which is why it is not a drop
+   shadow (see §7).
 
 ## 3. Type
 
@@ -82,7 +88,8 @@ Rules that follow from the choice:
 * **Sticky, then still.** Each rung is `162svh` tall with a `100svh` sticky plate:
   the camera holds its shot while the plate holds still, then both travel.
 * **Hairlines, not boxes.** Separation is a 1px `--rule` border. Nothing is raised
-  with a shadow except the index sheet.
+  with a shadow except the index sheet; the accent glow on its rows adds light
+  without an offset, so it raises nothing (§2.4).
 * **The gutter is one variable**: `--gutter: clamp(1.15rem, 3.6vw, 4rem)`.
 * **`svh`, never `vh`.** Mobile browser chrome must not change what the visitor can
   read; every vertical measurement that matters uses small viewport units.
@@ -113,7 +120,9 @@ should feel carried, not bounced.
 ## 7. What is explicitly not designed
 
 * No illustrations, photographs, textures, gradients-as-images, glassmorphism,
-  drop shadows on text, or emoji.
+  drop shadows on text, or emoji. The index rows' accent glow is the one thing
+  close to a shadow and is deliberately not one: no offset, nothing darkened, and
+  it only ever uses a colour the rung already owns (§2.4).
 * No colour is invented at the point of use: if a new colour is needed, it enters
   `tokens.css` and is mirrored in `palette.ts`, or it does not exist.
 * No layout exists only for desktop: both breakpoints are authored (see

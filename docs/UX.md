@@ -105,8 +105,14 @@ so the controls never re-render the canvas.
   bug; it is what a log axis does to starlight. Each mark is a real `<button>`, so
   it is clickable *and* tabbable, with `aria-current` on the active rung.
 * **The index sheet** — the header's `Index` control opens a dialog listing all
-  eight rungs with their arrows and labels. Focus moves to the first item, `Escape`
-  closes, click-outside closes, and jumping closes it and scrolls.
+  eight rungs with their arrows and labels. Each row is a link to its own rung, so
+  the pointer and the keyboard get the same feedback: hovering or tabbing to a row
+  lights it in that rung's accent — the colour the scene uses for the same object —
+  and following it closes the sheet. Focus moves to the first row, `Escape` closes,
+  and clicking the backdrop closes it wherever the sheet does not fill the window —
+  on a phone the sheet is full width, so there the close button and `Escape` are
+  the exits. The `href` can be copied or opened in a new tab like any other link,
+  because it is one.
 * **Anchors work.** Every rung has `id` (e.g. `#crab`); the URL hash is kept up to
   date with `history.replaceState` as the visitor climbs, and a deep link is
   honoured on load. That means a visitor can be sent to rung 6 directly, and

@@ -109,8 +109,8 @@ at `low` and loses nothing but density.
 
 | Mechanism | Honour | Refuse |
 |-----------|--------|--------|
-| `prefers-reduced-motion: reduce` | Camera snap, reveals placed immediately, pointer parallax off, `scroll-behavior: auto`, all CSS transitions/animations cut to 1ms, index/ruler jumps use `auto` | — |
-| `?motion=reduce` | Everything above, for QA without changing OS settings | — |
+| `prefers-reduced-motion: reduce` | Camera snap, reveals placed immediately, pointer parallax off, `scroll-behavior: auto` (so the index links and the skip link land instantly), all CSS transitions/animations cut to 1ms, the ruler's jump asks for `auto` | — |
+| `?motion=reduce` | Everything above, for QA without changing OS settings; the index rows are the exception in mechanism, not in effect — a query flag is invisible to a media query, so `IndexPanel` intercepts its own link click and does the jump with `behavior: 'auto'` | — |
 | Pulse clock | — | Still runs a 2.56s timer: the wait is the content |
 | Scrub phases | — | Still user-driven |
 | Toggle / compare | Short damped crossfade of the *object*, no travel | — |

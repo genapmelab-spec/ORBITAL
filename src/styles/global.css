@@ -814,6 +814,7 @@ html[data-hero='open'] .hero-cue {
 .index-backdrop {
   position: absolute;
   inset: 0;
+  z-index: 0;
   width: 100%;
   background: rgb(5 7 11 / 0.76);
   cursor: pointer;
@@ -821,6 +822,10 @@ html[data-hero='open'] .hero-cue {
 
 .index-panel {
   position: relative;
+  /* Above the backdrop: both are positioned, so without this the backdrop —
+     which comes later in the DOM — covers the sheet and swallows every click
+     on a row. The sheet must be reachable by pointer, not just by keyboard. */
+  z-index: 1;
   display: grid;
   align-content: start;
   gap: 1rem;
@@ -841,36 +846,77 @@ html[data-hero='open'] .hero-cue {
   display: grid;
 }
 
+/* Each row is a link to its rung, and it lights up in that rung's own accent:
+   the wash, the edge and the glow all come from the one `--accent` the item
+   carries, so the index and the scene cannot disagree about a colour. */
 .index-item {
   display: grid;
   grid-template-columns: 6rem 1fr;
   align-items: baseline;
   gap: 0.1rem 1rem;
-  width: 100%;
-  padding: 0.72rem 0;
+  padding: 0.72rem 0.6rem;
+  /* The tint reaches into the gutter so the words stay on the panel's line. */
+  margin-inline: -0.6rem;
   border-bottom: var(--rule);
   text-align: left;
   cursor: pointer;
+  transition:
+    background var(--dur-base) var(--ease-out),
+    box-shadow var(--dur-base) var(--ease-out);
+}
+
+.index-item:hover,
+.index-item:focus-visible {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  box-shadow:
+    inset 2px 0 0 var(--accent),
+    0 0 32px -12px color-mix(in srgb, var(--accent) 65%, transparent);
 }
 
 .index-arrow {
   color: var(--color-signal);
+  transition: color var(--dur-quick) var(--ease-out);
 }
 
 .index-name {
   font-family: var(--font-statement);
   font-size: 1.14rem;
+  transition:
+    color var(--dur-quick) var(--ease-out),
+    text-shadow var(--dur-base) var(--ease-out);
 }
 
 .index-label {
   grid-column: 2;
   color: var(--color-faint);
   font-size: 0.56rem;
+  transition: color var(--dur-quick) var(--ease-out);
 }
 
-.index-item[aria-current='true'] .index-name,
-.index-item:hover .index-name {
+/* Where you are now: the signal colour, and a wash quieter than the hover. */
+.index-item[aria-current='true'] {
+  background: color-mix(in srgb, var(--color-signal) 5%, transparent);
+}
+
+.index-item[aria-current='true'] .index-name {
   color: var(--color-signal);
+}
+
+.index-item:hover .index-arrow,
+.index-item:focus-visible .index-arrow {
+  color: var(--accent);
+  text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.index-item:hover .index-name,
+.index-item:focus-visible .index-name {
+  color: var(--accent);
+  text-shadow: 0 0 18px color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.index-item:hover .index-label,
+.index-item:focus-visible .index-label {
+  color: var(--color-dust);
 }
 
 .index-close {

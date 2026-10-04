@@ -66,6 +66,12 @@ The ruler is both the navigation and the lesson, so it carries the most state:
   covered by a backdrop button that is removed from the tab order
   (`tabindex="-1"`). The panel is `hidden` when closed, so it is not in the
   accessibility tree at all.
+* Every row is a real link — `<a href="#moon">` through `<a href="#firstlight">` —
+  named by its arrow, name and label, with `aria-current="true"` on the rung you
+  are at. Because it is a link rather than a button, the row can be copied, opened
+  in a new tab, or followed on a page whose script layer failed. Hover and
+  `:focus-visible` produce the same state, so the pointer and the keyboard see the
+  same row light up in that rung's accent colour.
 * The chrome retracts after three seconds without intent, and returns on any sign
   of use — including focus, so a keyboard visitor never loses the header.
 
@@ -139,9 +145,10 @@ Reduced motion is respected twice over:
 
 A complete pass, no pointer: skip link → brand → index button → 8 ruler marks →
 8 rung experiments (button / range / choice group per rung) → copy link → back to
-top. Focus is visible at every stop, the index dialog traps nothing (closed by
+top. Focus is visible at every stop, and opening the index walks its eight rows in
+ladder order before the close button. The index dialog traps nothing (closed by
 Escape, returning focus to whatever opened it), and no control exists only as a
-hover target. The `.skip` link and the retracting chrome are the two places where
+hover target: the rows glow on `:focus-visible` exactly as they do on `:hover`. The `.skip` link and the retracting chrome are the two places where
 pointer and keyboard paths differ, and both are biased towards the keyboard.
 
 ## 10. Known limits

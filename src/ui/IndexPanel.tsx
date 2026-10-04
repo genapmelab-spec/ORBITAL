@@ -1,13 +1,7 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, type CSSProperties } from 'react'
 import { COPY } from '../content/copy'
 import { RUNGS } from '../content/ladder'
 import { useOrbital } from '../state/store'
-
-function jump(id: string, reduced: boolean): void {
-  const el = document.getElementById(id)
-  if (!el) return
-  el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
-}
 
 /** The ladder as a list: the same order as the ruler, readable without 3D. */
 export function IndexPanel() {
@@ -23,7 +17,7 @@ export function IndexPanel() {
     // Opening a modal moves focus in; closing it must move focus back out to the
     // control that opened it, or the visitor is dropped on the document body.
     returnTo.current = document.activeElement as HTMLElement | null
-    const first = panel.current?.querySelector<HTMLButtonElement>('button')
+    const first = panel.current?.querySelector<HTMLElement>('.index-item')
     first?.focus()
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') setIndexOpen(false)
@@ -43,19 +37,31 @@ export function IndexPanel() {
         <ol className="index-list">
           {RUNGS.map((r, i) => (
             <li key={r.id}>
-              <button
-                type="button"
+              {/* A real link, not a button: the href is the rung's own id, so
+                  the browser performs the jump itself — smooth from the CSS on
+                  `html`, instant under `prefers-reduced-motion` — and the row
+                  can be copied, opened in a new tab, or followed with the
+                  script layer gone. Its accent is the rung's, so the row lights
+                  up in the colour of the scene it points at. */}
+              <a
                 className="index-item"
+                href={`#${r.id}`}
                 aria-current={activeRung === i ? 'true' : undefined}
-                onClick={() => {
+                style={{ '--accent': `var(--color-accent-${r.accent})` } as CSSProperties}
+                onClick={(event) => {
+                  // ?motion=reduce is a query flag, so CSS cannot see it: only
+                  // then is the jump taken out of the browser's hands.
+                  if (reduced) {
+                    event.preventDefault()
+                    document.getElementById(r.id)?.scrollIntoView({ behavior: 'auto', block: 'start' })
+                  }
                   setIndexOpen(false)
-                  jump(r.id, reduced)
                 }}
               >
                 <span className="index-arrow mono">{r.arrow}</span>
                 <span className="index-name">{r.name}</span>
                 <span className="index-label mono">{r.label}</span>
-              </button>
+              </a>
             </li>
           ))}
         </ol>
