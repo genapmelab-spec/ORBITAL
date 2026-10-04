@@ -1,120 +1,120 @@
 # DESIGN — ORBITAL
 
-The page is a dark room with real light in it. Everything visual descends from
-that sentence: a cold, near-black ground; bone text; one hot colour that only
-ever means "you can interact with this"; one solar highlight; one ion blue
-reserved for data.
+The look is a constraint list that turned into a style: no photographs, one
+accent per rung, dark everywhere, and type doing the work that images normally do.
 
-## 1. Visual identity
+## 1. Art direction in one paragraph
 
-- **Professional, cinematic, precise.** The reference is an instrument panel in a
-  documentary opening shot, not a sci-fi interface.
-- **Controlled asymmetry.** Nothing is centred unless the page itself is
-  speaking. Stations alternate sides; the 3D subject always takes the side the
-  copy does not.
-- **Type over chrome.** There are no panels, no cards, no borders except
-  hairlines. Hierarchy comes from scale, weight and space.
-- **Loud and quiet.** A station is quiet; the belt, Jupiter and the Sun are loud.
-  The rhythm is scripted in the camera keys, not discovered by scrolling.
-- **Restraint as identity.** Two gradients exist in the whole page, both
-  documented below. Glow is used in exactly three places: the ember CTA, the
-  focus ring, and light that is actually emitted by a star.
+An observatory instrument at night. Near-black fields, a single warm signal
+colour per rung, thin hairlines instead of boxes, and numerals set large enough to
+read as objects rather than labels. Everything that glows is computed by a shader;
+everything that speaks is type. The page should feel like a plate from a working
+instrument — recorded, not illustrated.
 
-## 2. Colour system
+## 2. Colour
 
-Defined once in `src/styles/tokens.css`; the 3D layer mirrors it in
-`src/three/systems/palette.ts`. No component writes a hex value.
+All colour is written down **once**, in `src/styles/tokens.css`, inside a
+Tailwind v4 `@theme` block. `tools/check-content.mjs` fails the build if a hex
+literal appears in any other `.ts`, `.tsx` or `.css` file; the only exemptions are
+the token file itself and its runtime mirror `src/scene/palette.ts`.
 
 | Token | Value | Role |
-| --- | --- | --- |
-| `--void` | `#05060B` | Page background, the unlit room |
-| `--deep` | `#0A0D15` | Raised surface: navigation panel, skip link |
-| `--ink` | `#EDEFF5` | Primary text, planet light |
-| `--muted` | `#8B93A7` | Secondary text |
-| `--faint` | `#5A6172` | Tertiary text, indices |
-| `--ember` | `#FF5C2E` | **Interaction only**: primary buttons, active navigation mark, the date slider thumb |
-| `--solar` | `#FFC46B` | Focus ring, act numbering, the emphasised words in the hero headline, star light in the scene |
-| `--ion` | `#86D3FF` | Data: station indices, the live metric, orbit guides, progress |
-| `--hairline` | `rgb(139 147 167 / 0.2)` | Every dividing line on the page |
-| `--scrim` | `rgb(5 6 11 / 0.66)` | Text protection where copy overlaps the scene |
+|-------|-------|------|
+| `--color-void` | `#05070b` | The sky. Also the renderer's clear colour. |
+| `--color-deep` | `#0b0e14` | Raised fields: index sheet, boot veil. |
+| `--color-ink` | `#e9e5dc` | Body text — warm off-white, never `#fff` |
+| `--color-dust` | `#8a8f99` | Secondary text, sources, captions |
+| `--color-faint` | `#747b88` | Inactive marks, small mono labels (AA on both field colours) |
+| `--color-signal` | `#6fe0c8` | Live state, the "in flight" dot |
+| `--color-flare` | `#ffb265` | The default accent, the thread, the pulse |
+| `--color-hairline` | `rgb(138 143 153 / .18)` | Every 1px rule on the page |
+| `--color-scrim` | `rgb(5 7 11 / .74)` | Backdrops over the canvas |
 
-Two gradients, no more:
+Eight accents, one per rung, each chosen for the object rather than the palette:
+moon `#d9d6ce`, sun `#ffd9a0`, voyager `#9fd8e8`, betelgeuse `#e8823f`, crab
+`#7fd9c0`, core `#c97b4a`, andromeda `#a8c4e8`, firstlight `#ff7a2f`.
 
-- `--grad-ember` — reserved for the primary CTA's hover/active treatment.
-- `--grad-deep` — the navigation's fade-to-nothing, so the bar never has a hard
-  edge over the scene.
+**The accent is not decoration.** A rung's accent sets `--accent` on its section,
+which colours the plate index, the ruler tip, the focus ring and the buttons; the
+same value reaches the scene as light for that object. The DOM and the 3D layer
+cannot drift, because both read the same custom property.
 
-Paired with the scene's own light, `--solar` is the true Sun colour
-(`#FFF3D6` core, `#FFB545` limb); the CSS token is the dimmed print version of
-the same light.
+### Darks, lights and glow
 
-## 3. Typography
+Because there are no images, brightness has to be manufactured. Three rules:
 
-Three voices, each with a job:
+1. **Surfaces are lit by a fake sun.** `createSurfaceMaterial` takes a `lightDir`
+   and does a Lambert term with a floor of `0.045` and a `smoothstep` terminator —
+   so a body in shadow goes nearly black instead of flat grey.
+2. **Hot objects are emissive.** A `uHot` blend mixes in `base * (0.7 + 1.6 * n)`
+   times a limb-darkening term, which is what makes the Sun read as a light source
+   and not a painted ball.
+3. **Light that has no surface is additive.** Coronae, halos, the thread, the
+   pulsar beams and every point cloud use additive blending with `depthWrite:false`,
+   so glow adds instead of occluding.
 
-| Voice | Face | Used for | Never used for |
-| --- | --- | --- | --- |
-| **Statement** | Instrument Serif (400, italic) | The page speaking: hero headline, premise title, act names, "Take the controls.", the close | Body copy, labels, buttons |
-| **Structure** | Space Grotesk (400–600) | Headings that name the model (station names), body text, buttons, navigation | Long-form text — nothing runs longer than four lines |
-| **Data** | JetBrains Mono (400–500) | Indices, kickers, metrics, readouts, navigation labels, colophon | Sentences |
+## 3. Type
 
-Scale (all fluid, all in tokens): hero `clamp(2.5rem, 6.6vw, 5.2rem)`; statement
-`clamp(1.95rem, 5vw, 3.9rem)`; station name `clamp(2.1rem, 5.4vw, 4.2rem)`,
-uppercase, tracking `0.01em`; body `1.0625rem/1.6`; mono `0.72rem`, tracking
-`0.16em`, uppercase.
+Three families, all self-hosted from `node_modules` as latin-subset woff2, all OFL
+1.1 (see `docs/licenses/README.md`):
 
-Rules: headings never exceed ~24 characters per line; `text-wrap: balance` on
-headings and `pretty` on paragraphs; italic serif is never used below 1.05rem.
+| Role | Family | Weight | Why |
+|------|--------|--------|-----|
+| Interface | Archivo Variable | 100–900 (variable axis) | Neutral, slightly condensed, reads well in small caps and monospace-adjacent rosters |
+| Statement | Newsreader | 400 roman + italic | A serif for the sentences that carry the idea; the italic sets every unit beside a numeral |
+| Readout | IBM Plex Mono | 400 | Instrument voice: arrows, sources, indices, the ruler |
+
+Rules that follow from the choice:
+
+* The **numeral is the headline**: `.numeral` is set at the largest size in the
+  page and the unit rides beside it in Newsreader italic (`1.28 <em>seconds</em>`).
+* Monospace is never used for prose. It is for values, labels and sources — the
+  places where the visitor is reading an instrument, not an essay.
+* Screen-reader text separates the numeral from its meaning: the visible heading is
+  `13.8` + `billion years`, the accessible text reads "13.8 billion years ago —
+  First Light".
 
 ## 4. Layout
 
-- **Gutter** `clamp(1.25rem, 4.2vw, 4.5rem)`; **measure** `min(36rem, 86vw)` for
-  prose, `min(30rem, 82vw)` for station copy.
-- **Rhythm** `clamp(5.5rem, 14vh, 11rem)` between sections, then broken on
-  purpose: the premise runs at 1.15×, stations at 0.8×, the hero at 190svh with
-  a sticky inner viewport.
-- **Vertical variety** is authored, not generated: station copy sits at the
-  bottom on left-sided stations and at the top on right-sided ones; the three
-  claims step down at 0/1.5/3rem; the acts move left, right, and indented by
-  `--tilt-c`.
-- **Crossings.** Exactly three elements are allowed to cross a section boundary,
-  each by a fixed negative margin: the station index over its hairline, the act
-  names over the space before their stations, and the close statement over the
-  control section. No other element may overlap a section edge.
-- **Z-layers**: canvas `0` → content `1` → chrome `20` → veil `30`.
-- **Breakpoints**: `68rem` (premise and claims collapse to one column, act
-  alignment resets, navigation folds behind the *Destinations* trigger — ten
-  inline links need more width than a tablet has) and `47.99rem` (mobile:
-  stations stack bottom-left, the section indicator hides, annotations are
-  hidden, portrait camera bias).
+* **One page, one column of plates.** Rungs alternate left/right so the subject is
+  never hidden behind the words; on portrait the plate becomes a full-width card
+  and the camera bias moves the subject above it.
+* **Sticky, then still.** Each rung is `162svh` tall with a `100svh` sticky plate:
+  the camera holds its shot while the plate holds still, then both travel.
+* **Hairlines, not boxes.** Separation is a 1px `--rule` border. Nothing is raised
+  with a shadow except the index sheet.
+* **The gutter is one variable**: `--gutter: clamp(1.15rem, 3.6vw, 4rem)`.
+* **`svh`, never `vh`.** Mobile browser chrome must not change what the visitor can
+  read; every vertical measurement that matters uses small viewport units.
+* **The aperture.** A CSS motif — a ring whose diameter is `--aperture`, animated
+  from `30vmax` to `220vmax` by the opening scroll. It is the eyepiece, and it is
+  the one element that behaves like a curtain.
 
-## 5. Motion
+## 5. Motion language
 
-Motion is weightless and intentional: nothing bounces, nothing spins for
-decoration, nothing moves without a reason in the script.
+Motion is either **travel** (the camera moving between rungs, the thread rushing
+past) or **arrival** (a plate's copy fading up 20px, once). Nothing loops for
+decoration except two things that mean something: the Moon's slow rotation and the
+pulsar's beams. Durations live in `src/lib/motion.ts` (`DUR`: 160/380/720 ms) and
+the camera uses exponential damping, never easing curves with overshoot. A visitor
+should feel carried, not bounced.
 
-| Moment | Treatment |
-| --- | --- |
-| Opening | The camera holds; the identity arrives in a 0.9 s stagger, ease `power3.out`. The window leaves by opening outward — it grows past the frame and fades, it does not cut |
-| Camera travel | Eased straight segments with a quintic ease (zero velocity and acceleration at both ends), damped twice: 7 Hz in the scene, per-section holds in the scroll mapping |
-| Arrival | The camera settles before the copy does; section reveals are `opacity 0→1` and `y 22→0` over 0.75 s, staggered 0.08 s, `power2.out`, once |
-| Spatial annotations | Fade in over 0.38 s, ±0.34 of the camera parameter around their station, projected every frame |
-| Navigation | Retracts after 3 s without intent, returns in 0.42 s on `--ease-soft` |
-| Hover | 1 px lift, 180 ms; the ember glow appears on the CTA only |
-| Progress | A 1 px ion line under the navigation, scaled by `--journey-progress` |
+## 6. Honesty as a design element
 
-Tokens: `--dur-quick 180ms`, `--dur-base 380ms`, `--dur-slow 640ms`,
-`--dur-chrome 420ms`, `--ease-out cubic-bezier(.16,.84,.28,1)`,
-`--ease-soft cubic-bezier(.33,0,.2,1)`.
+* The staging is compressed and the page says so in the instrument card
+  (*"Distances here are compressed so they can be seen. The numbers are not."*).
+* Voyager 1 is drawn as a schematic — dish, bus, boom, generator — because we will
+  never have a photograph of it.
+* The source line is printed on every plate, in mono, at body size, not hidden
+  behind a disclosure.
+* The `?hud=1` measurement instrument is a QC tool and never shipped in the
+  product's nav; it is visible only when a developer asks for it.
 
-**Reduced motion** (`prefers-reduced-motion: reduce`): the camera jumps between
-whole keys, reveals are instant, all transitions collapse to 1 ms, smooth
-scrolling is off. The model still works — the date control still moves the
-planets — because the motion is removed, not the meaning.
+## 7. What is explicitly not designed
 
-## 6. What the design refuses
-
-No neon outlines. No glass morphism panels. No card grids. No drop shadows on
-text. No gradient text. No parallax on the copy (only the camera moves). No
-animation that plays without the visitor causing it. No colour that does not
-come from the table above.
+* No illustrations, photographs, textures, gradients-as-images, glassmorphism,
+  drop shadows on text, or emoji.
+* No colour is invented at the point of use: if a new colour is needed, it enters
+  `tokens.css` and is mirrored in `palette.ts`, or it does not exist.
+* No layout exists only for desktop: both breakpoints are authored (see
+  docs/RESPONSIVE.md).

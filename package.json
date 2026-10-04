@@ -1,26 +1,37 @@
 {
   "name": "orbital",
-  "version": "1.0.0",
-  "description": "ORBITAL — a live model of the Solar System",
-  "type": "module",
   "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "ORBITAL — nothing you see is happening now. A look-back ladder from the Moon to the first light.",
   "scripts": {
-    "dev": "astro dev",
-    "check": "astro check && npm run check:layout",
-    "check:layout": "node tools/check-layout.mjs",
-    "build": "astro build",
-    "preview": "astro preview"
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "check:content": "node tools/check-content.mjs",
+    "check:budget": "node tools/check-budget.mjs",
+    "check": "npm run typecheck && npm run check:content && npm run build && npm run check:budget"
   },
   "dependencies": {
-    "astro": "^7.3.5",
-    "gsap": "^3.15.0",
-    "three": "^0.186.1"
+    "@fontsource-variable/archivo": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/newsreader": "^5.3.0",
+    "@react-three/fiber": "^9.8.1",
+    "gsap": "^3.13.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "three": "^0.186.1",
+    "zustand": "^5.0.8"
   },
   "devDependencies": {
-    "@astrojs/check": "^0.9.4",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@types/three": "^0.186.0",
+    "@vitejs/plugin-react": "^5.1.0",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vite": "^7.1.0"
   }
 }

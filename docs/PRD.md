@@ -1,162 +1,129 @@
 # PRD — ORBITAL
 
-## 1. Product
+**Status:** shipped (v1.0.0) · **Owner:** the site itself · **Gate:** `npm run check`
 
-**Name.** ORBITAL
+## 1. The problem
 
-**Concept.** ORBITAL is a live model of the Solar System, played as one
-unbroken flight. Positions come from real orbital elements computed for the
-current date; every surface is drawn procedurally in the browser. The visitor
-crosses the system at their own speed and, at the end, takes control of time
-itself.
+Almost every astronomy page on the web answers *what is out there*. Almost none
+answer the question that makes astronomy strange: **the light you are looking at
+left before you did.** Planets get tours, distances get animations, and the fact
+that looking out is looking back is left as a caption.
 
-**Category.** Interactive science instrument — an explorable model, not an
-article, not a gallery, not a game.
+ORBITAL is built on one idea and refuses to leave it:
 
-**One sentence.** *A working model of the Solar System: real positions for
-today, every surface drawn live, one continuous crossing from a window above
-Earth to the surface of the Sun.*
+> Nothing you see is happening now.
 
-**Purpose.** Scale, distance and time cannot be transmitted by a diagram: every
-picture of the Solar System is compressed to fit a page. ORBITAL does not
-compress the experience — it makes the visitor cross the distance, so scale
-arrives as experience rather than as a number.
+The visitor climbs a ladder of delays: 1.28 seconds for a laser off the Moon,
+8 minutes 20 seconds for the Sun, 23 hours 40 minutes for Voyager 1, 550 years
+for Betelgeuse, 6,500 years for the Crab, 26,000 years for the centre of our own
+galaxy, 2.5 million years for Andromeda, and 13.8 billion years for the first
+light that was ever free to travel.
 
-### Target audience
+## 2. Audience
 
-| Audience | What they get |
-| --- | --- |
-| Curious adults who learn by seeing | A single, self-explaining flight; no interface to learn |
-| Educators and students | One fact per destination, each attached to the object it belongs to, and a date control that makes orbital motion tangible |
-| People who value real-time graphics | An honest procedural scene: no textures, no photographs, no image bytes |
+* Curious adults who read a science page to the end and hate being condescended to.
+* Teachers and planetarium explainers who need an artefact they can point at.
+* Developers who care what a page can do with zero photographs.
 
-### Core value proposition
+No account, no signup, no personalisation. One page, one idea.
 
-1. **Honest source.** Nothing on the page is an image. Surfaces are generated;
-   positions are computed. The claim can be checked by looking.
-2. **Real positions.** Every body sits where it actually is on the date the
-   visitor is reading — and moves if they change that date.
-3. **One continuous camera.** No cuts, no dissolves, no resets. The flight never
-   stops moving.
-4. **A real action at the end.** The visitor takes the controls rather than
-   being asked to sign up for something.
+## 3. Goals
 
-## 2. Goals
+| # | Goal | How it is proved |
+|---|------|------------------|
+| G1 | Every number is real and sourced | `tools/check-content.mjs`: each rung carries a source line with a figure; `docs/CONTENT.md` mirrors the copy verbatim |
+| G2 | The delay is *felt*, not just stated | Four mechanisms, one per pair of rungs; every rung has a non-text conclusion in the DOM |
+| G3 | The lesson survives every failure | No-JS, no-WebGL, reduced-motion and failed-chunk paths all keep the full script (see docs/ACCESSIBILITY.md) |
+| G4 | It ships without a single pixel of photography | Banned image bytes enforced by `tools/check-budget.mjs` (`images: 0`) |
+| G5 | It is fast on the first visit | Budgets measured from the real build (docs/PERFORMANCE.md) |
+| G6 | It is honest about being a diagram | The compressed staging is admitted on the page itself, in the instrument card |
 
-The page must, in order:
+## 4. Non-goals
 
-1. **Attract attention** — open inside an environment, not on a planet portrait.
-2. **Explain ORBITAL** — say what it is in one screen: identity, headline, value
-   proposition, CTA.
-3. **Communicate value** — why a live model beats a diagram, in three claims.
-4. **Create curiosity** — the first stations are the two worlds the visitor
-   already knows; the promise is what comes after them.
-5. **Demonstrate the experience** — the flight itself, unfaked.
-6. **Build desire** — the belt, Jupiter and the Sun are staged as scale events.
-7. **Guide to a clear CTA** — "Take the controls": the date control that moves
-   the whole system, plus restart and copy-link.
+* No backend, API, database, CMS or runtime third-party fetch. Static files only.
+* No analytics, tracking, cookies, accounts or advertising. The page cannot see you.
+* No photographs, textures, image or video assets. Everything visible is geometry,
+  shader output, type or CSS.
+* No audio. It would fight the reading, and it would need a file.
+* No planet-by-planet tour, no quiz, no newsletter. The ladder is the whole product.
+* No claim that the staging is to scale. It is not, and it says so.
 
-**Success test (the only one that matters):** a first-time visitor can say, after
-one screen, *what ORBITAL is*, *why it exists*, and *what they want to do next*.
+## 5. The ladder (scope)
 
-## 3. User experience
+Eight rungs, in strictly increasing look-back time. One shared mechanism per pair:
 
-**Feel:** an instrument, not a showreel. Precision, calm, confidence — a
-documentary's opening shot rather than a title sequence.
+| # | Rung | Arrow | Look-back | Mechanism |
+|---|------|-------|-----------|-----------|
+| 01 | The Moon | 1.28 s | 1.282 s | pulse — fire the laser |
+| 02 | The Sun | 8 m 20 s | 499 s | scrub — run the photon |
+| 03 | Voyager 1 | 23 h 40 m | 85,180 s | pulse — transmit, and wait |
+| 04 | Betelgeuse | 550 y | 1.7357e10 s | toggle — light the fuse |
+| 05 | The Crab Nebula | 6,500 y | 2.0512e11 s | compare — 1054 or tonight |
+| 06 | The Galactic Centre | 26,000 y | 8.205e11 s | toggle — visible, infrared, radio |
+| 07 | Andromeda | 2.5 M y | 8.0156e13 s | compare — then and now |
+| 08 | First Light | 13.8 G y | 4.354e17 s | scrub — turn up the heat |
 
-**Understand:** the visitor should leave with three things: the Solar System is
-mostly emptiness; the distances are not humanly imaginable; and a model that
-runs live is a different kind of thing from a picture of one.
+The conversion rules behind every figure (c, the Julian year, the distance used)
+are written out in `docs/CONTENT.md`, and the checker verifies that the table and
+the code agree.
 
-## 4. Core features
+## 6. Deliverables
 
-| Feature | Why it exists |
-| --- | --- |
-| The opening window | Answers "where am I?" before "what is this?" — the visitor starts inside a structure, with Earth's limb low in the frame |
-| Six destinations | Earth, Moon, Mars, Asteroid Belt, Jupiter, Sun. Chosen as story beats, not as a catalogue |
-| One fact + one explanation per destination | Enough to learn something; never an article |
-| Spatial annotations | A destination's name and one measured number are projected from the body's real position — interface and world as one system |
-| Date control (±3 years) | The product, unscripted: the visitor moves every world along its own orbit |
-| Live readouts | Earth → Mars distance in AU, computed from the same elements the scene uses; they work without WebGL |
-| Copy-the-link | The only honest share action for a page with no backend |
-| Reduced motion | Whole-key camera cuts, no reveals, no parallax |
-| WebGL fallback | A CSS sky and all copy; the numbers still run |
+1. A static site in `dist/` that runs from any file server or CDN.
+2. The rung data in one place (`src/content/ladder.ts`) with `docs/CONTENT.md` as
+   its human-readable mirror.
+3. Four mechanisms that can be operated by pointer, touch or keyboard.
+4. A no-JavaScript copy of all eight rungs, injected into `index.html` at build.
+5. Gates: `typecheck`, `check:content`, `build`, `check:budget` — one command.
+6. This documentation set.
 
-## 5. Landing-page goals
+## 7. How the visitor moves through it
 
-- The hero must function as a real landing hero — identity, headline,
-  explanation, value proposition, CTA — while also being a place.
-- Copy can be read at any point without the 3D: every section carries its own
-  text in the DOM.
-- CTAs are placed where the intent exists: *Begin the flight* (hero and after the
-  premise), *Take the controls* (the model section), *Fly it again* / *Copy the
-  flight link* (the close).
+1. **Opening frame.** An eyepiece, one sentence, one number (1.28 s). The identity
+   is withheld until the visitor scrolls; the aperture opens with them.
+2. **The instrument card.** Why light has a date on it, the three reading rules,
+   and the admission: *Distances here are compressed so they can be seen. The
+   numbers are not.*
+3. **Eight rungs.** Each arrives, holds while the camera holds its shot, then flies
+   to the next. The plate carries: index, label, the numeral, the unit, the name,
+   the fact, the explanation, the experiment and the source line.
+4. **The close.** The ladder's end and what it means: same eye, same instrument,
+   only the delay changed. One action — climb again — and a link copier that
+   removes itself when the clipboard API is unavailable.
 
-## 6. Non-goals
+Navigation is not a menu bolted on: the ruler at the foot of the page *is* the
+navigation, and its marks sit at true logarithmic positions, so the crowding in
+the middle is itself the lesson (most of the ladder's length is starlight). An
+index sheet gives the same eight items as a list.
 
-- **Not a planet encyclopedia.** No catalogue, no per-planet fact sheets, no
-  eight-planet completeness. Six destinations, chosen for the story.
-- **Not a dashboard or HUD.** No instrument panels, no telemetry chrome, no
-  readouts that exist to look technical. The one control on the page is a date
-  slider inside a sentence.
-- **Not a generic SaaS landing page.** No feature grid, no pricing, no logos,
-  no testimonials.
-- **Not an information portal.** No long-form text, no glossary, no navigation
-  tree.
-- **Not a WebGL demo.** The 3D exists to serve the story; if a visual effect did
-  not earn its place in the script, it was cut.
-- **Not space tourism.** ORBITAL does not sell a trip; it is the instrument.
-- **Not a backend product.** No accounts, no database, no analytics, no
-  network calls at runtime.
-- **No photographs, no textures, no models.** All imagery is procedural.
+## 8. Success criteria (machine-checked)
 
-## 7. Responsive requirements
+| Gate | Command | Passing means |
+|------|---------|---------------|
+| Types | `npm run typecheck` | `tsc --noEmit`, strict, no unused locals |
+| Content | `npm run check:content` | 8 ordered rungs, every string present, every source line carries a figure, docs agree with code, zero colour literals outside the token file |
+| Build | `npm run build` | A static `dist/` with four woff2 files, one CSS file, three JS chunks |
+| Budget | `npm run check:budget` | initial JS ≤ 150 KB gz, lazy ≤ 350 KB, CSS ≤ 30 KB, fonts ≤ 140 KB, images = 0, and every rung's `<noscript>` copy present |
 
-| Range | Behaviour |
-| --- | --- |
-| Desktop ≥ 1088px | Full composition: stations alternate their copy left/right, spatial annotations visible, full navigation list inline |
-| Tablet 768–1087px | Premise and claims collapse to one column; annotations still visible; navigation folds behind a *Destinations* trigger (the section indicator stays visible) |
-| Mobile < 768px | Stations stack their copy bottom-left; annotations hidden (the section copy carries the information); navigation folds behind a *Destinations* trigger; the camera uses a portrait framing bias (further from each subject, less lateral offset) |
+All four run as `npm run check`. In the browser, the acceptance pass is: the
+rungs map to their sections, the experiments operate, the tier governor holds
+frame time, and the four fallback paths render the full script.
 
-Portrait matters: the camera contract has an explicit portrait bias, not a
-shrunk desktop shot (`docs/TECHNICAL.md`).
+## 9. Risks and how they are handled
 
-## 8. Accessibility
-
-- All content is in the DOM; the canvas is `aria-hidden` and the stage is
-  non-interactive.
-- Keyboard: skip link, one focus-visible style, full navigation list, the date
-  slider is a native range input with a label and a live output, Escape closes
-  the navigation panel.
-- One `h1`; sections are landmarks with headings; the navigation marks the
-  current section with `aria-current`.
-- Contrast: all text sits on `--void` or a scrim at AA or better; the only
-  saturated colour on text is the ember CTA (dark text on ember) and the ion
-  index labels on dark.
-- `prefers-reduced-motion`: the camera cuts between composed stills, reveals are
-  instant, transitions are 1 ms.
-- No WebGL: identical DOM, a CSS sky instead of the scene, an explicit note in
-  the control section.
-
-## 9. Performance
-
-Targets, measured on the production build:
-
-| Budget | Target | Actual |
-| --- | --- | --- |
-| Initial JavaScript (gzip) | ≤ 60 KB | ~51 KB (page scripts + GSAP/ScrollTrigger) |
-| Lazy scene chunk (gzip) | ≤ 210 KB | ~144 KB (Three.js + scene) |
-| CSS (gzip) | ≤ 22 KB | ~6 KB |
-| Draw calls | < 60 desktop / < 30 low tier | planets 4 + sun 3 + belts 1 + fields 2 + guides 5 |
-| Device pixel ratio | ≤ 2 | 2 / 1.6 / 1 by tier |
-| Frame budget | 60 fps target, 3 quality tiers, FPS governor | governor: downgrade < 46 fps, upgrade > 58 fps, 5 s cooldown |
-| Paused when hidden | yes | `visibilitychange` stops the loop |
-
-Also enforced: one renderer, one animation loop, lazy `import()` of the scene
-after first paint, deterministic seeded geometry, and full disposal on
-`dispose()`.
+| Risk | Handling |
+|------|----------|
+| Staged scale reads as a claim | The instrument card says otherwise, in the page, in the visitor's path — not in a footnote |
+| Numbers drift from sources | One source of truth plus a checker that fails the build |
+| A shader or chunk fails on one device | `SceneBoundary` and the CSS sky path; the plates never depend on WebGL |
+| Frame time collapses on a weak GPU | The governor steps counts and DPR down; the story is untouched by any tier |
+| Motion sickness | `prefers-reduced-motion` and `?motion=reduce` both snap the camera and disable reveals |
+| The idea gets lost in decoration | Every rung must ship its fact, explanation and source as DOM text; the checker enforces presence |
 
 ## 10. Out of scope for v1
 
-Self-hosted fonts, shareable date links, an educator mode, a second language.
-See `docs/ROADMAP.md`.
+* Additional rungs (Mars, Proxima, the LMC) — the eight are enough, and each new
+  rung costs a scene, a frame and a mechanism.
+* Localisation. The copy is English and the numbers are en-GB formatted.
+* WebGPU, XR, audio, video export, saved progress.
+* Any measurement of visitors. There are no beacons of any kind.

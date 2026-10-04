@@ -1,6 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="ORBITAL">
-  <rect width="64" height="64" rx="14" fill="#05060B" />
-  <ellipse cx="32" cy="32" rx="21" ry="9" fill="none" stroke="#8B93A7" stroke-opacity="0.45" stroke-width="2" transform="rotate(-24 32 32)" />
-  <circle cx="32" cy="32" r="8.5" fill="#EDEFF5" />
-  <circle cx="50" cy="24" r="3.4" fill="#FF5C2E" />
+  <rect width="64" height="64" fill="#05070b"/>
+  <circle cx="32" cy="32" r="19" fill="none" stroke="#5b616c" stroke-width="1.5"/>
+  <path d="M32 4v10M32 50v10M4 32h10M50 32h10" stroke="#5b616c" stroke-width="1.5"/>
+  <circle cx="32" cy="32" r="7" fill="#ffb265"/>
+  <circle cx="45" cy="21" r="2.4" fill="#6fe0c8"/>
 </svg>

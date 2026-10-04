@@ -1,70 +1,45 @@
+@import 'tailwindcss';
+
 /**
- * ORBITAL design tokens — the only place the page writes down a colour, a type
- * size, a distance or a duration. Components and section CSS consume these; the
- * 3D layer mirrors the colours in `src/three/systems/palette.ts`.
- *
- * Palette logic (docs/DESIGN.md): the page is a dark room with real light in it.
- * Cold near-black ground, bone text, one hot interaction colour, one solar
- * highlight, one ion blue reserved for data. Nothing else.
+ * Every colour in ORBITAL is written down exactly once: here. The scene reads
+ * these custom properties at runtime (src/scene/palette.ts), so the 3D layer and
+ * the DOM cannot drift apart, and tools/check-content.mjs fails the build if a
+ * hex value appears anywhere else.
  */
+@theme {
+  --color-void: #05070b;
+  --color-deep: #0b0e14;
+  --color-ink: #e9e5dc;
+  --color-dust: #8a8f99;
+  --color-faint: #747b88;
+  --color-signal: #6fe0c8;
+  --color-flare: #ffb265;
+  --color-hairline: rgb(138 143 153 / 0.18);
+  --color-scrim: rgb(5 7 11 / 0.74);
+
+  --color-accent-moon: #d9d6ce;
+  --color-accent-sun: #ffd9a0;
+  --color-accent-voyager: #9fd8e8;
+  --color-accent-betelgeuse: #e8823f;
+  --color-accent-crab: #7fd9c0;
+  --color-accent-core: #c97b4a;
+  --color-accent-andromeda: #a8c4e8;
+  --color-accent-firstlight: #ff7a2f;
+
+  --font-sans: 'Archivo Variable', 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-statement: 'Newsreader', 'Iowan Old Style', Georgia, serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+}
 
 :root {
-  color-scheme: dark;
-
-  /* Colour */
-  --void: #05060b;
-  --deep: #0a0d15;
-  --ink: #edeff5;
-  --muted: #8b93a7;
-  --faint: #5a6172;
-  --ember: #ff5c2e;
-  --solar: #ffc46b;
-  --ion: #86d3ff;
-  --hairline: rgb(139 147 167 / 0.2);
-  --scrim: rgb(5 6 11 / 0.66);
-  --scrim-soft: rgb(5 6 11 / 0.34);
-  --grad-ember: linear-gradient(118deg, #ff5c2e 0%, #ff8a3d 55%, #ffc46b 120%);
-  --grad-deep: linear-gradient(180deg, rgb(5 6 11 / 0.92) 0%, rgb(5 6 11 / 0) 100%);
-
-  /* Type */
-  --font-voice: 'Instrument Serif', 'Iowan Old Style', 'Times New Roman', serif;
-  --font-ui: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-data: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
-
-  --t-meta: 0.72rem;
-  --t-whisper: 0.95rem;
-  --t-body: 1.0625rem;
-  --t-lead: clamp(1.05rem, 1.35vw, 1.2rem);
-  --t-fact: clamp(1.2rem, 2vw, 1.75rem);
-  --t-h2: clamp(1.65rem, 3.2vw, 2.6rem);
-  --t-station: clamp(2.1rem, 5.4vw, 4.2rem);
-  --t-voice: clamp(1.95rem, 5vw, 3.9rem);
-  --t-hero: clamp(2.5rem, 6.6vw, 5.2rem);
-  --track-mono: 0.16em;
-  --track-tight: -0.02em;
-
-  /* Layout */
-  --gutter: clamp(1.25rem, 4.2vw, 4.5rem);
-  --measure: min(36rem, 86vw);
-  --measure-tight: min(30rem, 82vw);
-  --section-pad: clamp(5.5rem, 14vh, 11rem);
-  --tilt-a: -5vw;
-  --tilt-b: 3.5vw;
-  --tilt-c: 7.5vw;
-  --z-canvas: 0;
-  --z-content: 1;
-  --z-chrome: 20;
-  --z-veil: 30;
-
-  /* Motion */
-  --dur-quick: 180ms;
+  --dur-quick: 160ms;
   --dur-base: 380ms;
-  --dur-slow: 640ms;
-  --dur-chrome: 420ms;
+  --dur-slow: 720ms;
   --ease-out: cubic-bezier(0.16, 0.84, 0.28, 1);
   --ease-soft: cubic-bezier(0.33, 0, 0.2, 1);
-  --focus-ring: 0 0 0 2px var(--void), 0 0 0 4px var(--solar);
-
-  /* Runtime — written by src/scripts/scroll.ts */
-  --journey-progress: 0;
+  --gutter: clamp(1.15rem, 3.6vw, 4rem);
+  --aperture: 30vmax;
+  --accent: var(--color-flare);
+  --rule: 1px solid var(--color-hairline);
+  color-scheme: dark;
 }

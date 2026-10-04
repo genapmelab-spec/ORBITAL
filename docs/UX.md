@@ -1,144 +1,150 @@
 # UX — ORBITAL
 
-## 1. The journey
+The interface has one job: make the visitor wait, on purpose, in eight different
+lengths of time. Everything else is in service of that.
 
-The marketing progression is the page order. Nothing is asked of the visitor
-before they have been given a reason to care.
+## 1. The first five seconds
 
-| Stage | Section | What the visitor does | What they should feel |
-| --- | --- | --- | --- |
-| **Attention** | `entry` | Lands inside a window: hull at the edges, Earth's limb low in the frame, one line — *Somewhere above the night side.* | "Where am I?" |
-| **Curiosity → Understanding** | `entry` (same screen, on scroll) | The identity arrives: ORBITAL, the headline, the value proposition, *Begin the flight* | "This is a model, not a page about planets." |
-| **Purpose** | `premise` | Reads why a live model beats a diagram; three claims | "I understand why this exists." |
-| **Interest** | `act-1` → `earth` → `moon` | Starts the flight; the two worlds already known | "It's moving." |
-| **Tension** | `act-2` → `mars` → `belt` | Crosses the last measured thing; rocks pass the camera | "This is bigger than I thought." |
-| **Awe** | `act-3` → `jupiter` | One planet that owns more mass than all the others together | "I'm small." |
-| **Desire / climax** | `sun` | Arrives in the star's own light | "I want to see this move." |
-| **Action** | `control` | Sets the date; every world moves along its orbit; watches Earth → Mars distance change | "I'm holding the model." |
-| **Resolution** | `close` | Reads the last line; flies again or copies the link | "I want to show someone." |
+The page opens as an eyepiece. The aperture ring is closed to `30vmax`; behind it
+the sky and a Moon at the shortest delay there is. One sentence is visible:
 
-## 2. Section rhythm
+> The Moon, one and a quarter seconds ago.
+> It is the shortest delay the sky can offer.
 
-Arrive → hold → depart. The camera reaches a destination, holds still for the
-whole section, then leaves while the next chapter's copy is already on screen.
-Quiet and loud alternate on purpose: `earth` and `moon` are calm, the belt is
-fast, `jupiter` is heavy, `sun` is the loudest frame in the page, and `control`
-after it is deliberately calm again so the visitor can operate something.
+**The identity is withheld until the visitor moves.** The wordmark, the tagline and
+the two buttons appear only as `--aperture` opens — the hero section is
+`min-height: 210svh` with a `100svh` sticky inner frame, and `live.hero` runs 0 → 1
+across it. Scrolling is the instrument's first look; a visitor who does not scroll
+still gets a complete sentence and a number.
 
-## 3. Hero interaction
+At rest, a scroll cue in mono sits at the foot: *Scroll to look further back.*
 
-- At load the visitor sees the window, Earth's limb, one line — *Somewhere above
-  the night side.* — and a single mono word, `Scroll`. Nothing else.
-- 15% of a viewport of scrolling brings the identity: ORBITAL, the headline, the
-  value proposition, the CTA, in a 0.9 s stagger. Measured in scrolled pixels,
-  never in time, so it cannot arrive without the visitor.
-- At 60% the whisper and the scroll cue leave; the window then opens outward
-  (camera parameter 0.38 – 0.7) and the flight to Earth's framing begins.
-- The camera itself holds still for 1.15 viewports (`data-hold` on the hero
-  section) before it starts to travel, so the opening never feels like a
-  runaway.
-- Primary CTA *Begin the flight* jumps to `#earth`; the secondary *What am I
-  looking at?* jumps to `#premise`. Both work with no JavaScript and no WebGL.
-- Clicking the brand returns to `#entry`.
+## 2. The instrument card
 
-## 4. Scroll behaviour
+One screen between the opening frame and the ladder. It answers the three
+questions a visitor will otherwise ask, in the page's own voice:
 
-Native scrolling only — never hijacked.
+| Rule | Copy |
+|------|------|
+| The number | Each rung is labelled with how long its light has been travelling. |
+| The scenes | Each object is staged at a size the eye can follow. The distances are not to scale; the numbers are. |
+| The experiments | Every rung can be operated: run the photon, fire the laser, change the light. |
 
-Each section contributes two stops to the scroll → camera mapping: the position
-where its key has been reached (its top passing ~18% of the viewport) and the
-position where the camera may leave (its bottom minus ~30% of the viewport).
-Between stops the camera parameter interpolates linearly; between a section's two
-stops it does not move. The camera then damps toward that target at 7 Hz, so the
-shaft of a mouse wheel never produces a jerk.
+Below it, the honesty note, marked `note`: *Distances here are compressed so they
+can be seen. The numbers are not.* With no WebGL, a second note appears here that
+explains the CSS sky and says every number, explanation and source is unchanged.
 
-Consequences that are deliberate:
+## 3. Climbing: the scroll contract
 
-- A section's copy is always on screen while the camera is holding its shot.
-- Anchor jumps (navigation, CTAs) land where the camera has settled, because
-  sections carry `scroll-margin-top: 18vh`.
-- Nothing moves until the visitor scrolls; there is no autoplay.
+Each rung occupies `162svh`. The scroll is mapped to a continuous rung position
+(long `src/lib/scroll.ts` `measure()`):
 
-## 5. Navigation
+* **Arrive** at `top − 10svh` → the camera is at the rung (whole number).
+* **Hold** to `top + 62svh` → the camera does not move. The plate is fully visible.
+  This is where reading and operating happen.
+* **Fly** until `top + 62svh + 0.5px`... in key terms: the next key is flagged
+  `travelling` and the interpolation crosses into the next rung. The flight is
+  deliberately longer than the hold — **the travel is the lesson**.
+* The final key pins the last rung to the bottom of the document, so First Light
+  cannot be scrolled *past*.
 
-**One system.** A single `<header>` with a brand, the current position, the
-section list and a progress rule. On wide screens the list is inline; on small
-ones the same list folds behind the *Destinations* trigger — the DOM is never
-duplicated.
+Cue from the scene: `uTravel` rises during a flight and drives the thread's speed
+and the motes. The ruler's readout climbs in log space while the camera is between
+rungs, so the number in the ruler and the thing on screen are always the same
+moment.
 
-**Behaviour.**
+Chrome behaviour: the header retracts after **3 seconds** without intent and
+returns on any scroll-back, pointer move into the top 110px, Tab, or focus. It is
+never hidden while the index sheet is open.
 
-| State | Trigger |
-| --- | --- |
-| Visible | Page load, pointer within 110 px of the top edge, scroll up > 6 px, focus entering the chrome, trigger pressed, Escape pressed |
-| Retracts | 3 s after the last navigation intent (3 s after load, if nothing happens) |
-| Never retracts | While the section list is open, or while keyboard focus is inside the chrome |
+## 4. The plate
 
-The current section is marked with `aria-current="true"` and a 1 px ember
-underline; the current position is also printed as text (`03 · Mars`) with an
-`sr-only` sentence for screen readers. The retraction is a 0.42 s translate and
-fade — the bar leaves like a panel sliding back, not like a menu snapping shut.
+Reading order on every rung, top to bottom:
 
-## 6. CTA placement
+1. `01 /08` + the label (*Nearest delay*) — mono, small.
+2. The numeral, huge, with the unit beside it in serif italic.
+3. The name.
+4. The fact, in one sentence.
+5. The explanation, two or three sentences, including the source's substance
+   (e.g. that SN 1054 was recorded by Chinese astronomers).
+6. The experiment (section 5).
+7. The source line — mono, dust-coloured, always visible.
 
-| Where | What | Why here |
-| --- | --- | --- |
-| Hero | *Begin the flight* (primary), *What am I looking at?* (secondary) | The moment the value proposition lands |
-| After the premise | *Begin the flight* | The moment the argument is complete |
-| Control | Date slider, *Back to today*, *Restart from the window*, *Copy the flight link* | The action the whole page has been promising |
-| Close | *Fly it again* (primary), *Copy the flight link* | No new ask — the same action, repeated for anyone who arrived at the end without touching the model |
+Copy reveals once, 20px up, 720ms, staggered 70ms, triggered when the plate is 84%
+up the viewport (`ScrollTrigger`, `once: true`). It never re-animates; re-reading is
+not punished. Rungs alternate sides so the subject is never behind the words.
 
-No email capture, no "request a demo", no newsletter: the page has no backend,
-and it does not pretend to have one.
+## 5. The four mechanisms
 
-## 7. Information hierarchy
+Each pair of rungs shares one interaction shape, so the visitor learns four ideas
+and then meets them again larger:
 
-Per destination, exactly four things, in this order: index (`03 / 06`), name,
-one fact, one explanation. Never more. The spatial annotation in the scene
-repeats the name and one measured number — it is decoration for sighted users
-(`aria-hidden`), never the only place something is said.
+| Mechanism | Rungs | What the visitor does | What the scene does | What cannot be faked |
+|-----------|-------|-----------------------|---------------------|----------------------|
+| **Pulse** | Moon, Voyager 1 | Presses *Fire the laser* / *Transmit* | A marker travels the real path and returns (Moon) or leaves and never returns (Voyager) | The Moon's clock is 2.56 s round trip; the pulse's duration is 2560ms. Voyager's is a compressed 5.2 s standing in for 47 h 20 m, and the copy says so |
+| **Scrub** | Sun, First Light | Drags a slider | Corona brightens and a photon climbs out (Sun); the shell's temperature climbs from 2.725 K to the fog (First Light) | Sun phases: core → 10⁴–10⁵ yr → surface → 499 s. First Light: 2.725 K → 3,000 K → opacity |
+| **Toggle** | Betelgeuse, Galactic Centre | Chooses one state | Shockwave ring expands (fuse); dust band fades and a photon ring appears (radio) | The Betelgeuse choice is a thought experiment and the note says so: nothing changes tonight |
+| **Compare** | Crab, Andromeda | Switches between two moments | Wreck ↔ guest star of 1054; galaxy ↔ the arriving wavefront | Both sides are the same object, two dates |
 
-## 8. Interaction states
+Every mechanism writes its conclusion to the DOM as text (`exp-result`,
+`exp-detail`) whether or not the scene is available. With no WebGL the controls are
+disabled and the conclusions are still printed — the mechanism is the *experience*
+of the wait, not the source of the information.
 
-| Element | Default | Hover | Focus | Active |
-| --- | --- | --- | --- | --- |
-| Primary button | Ember fill, void text | 1 px lift + ember glow | Solar double ring | Lift released |
-| Ghost button | Hairline border, ink text | Border and text turn ember | Solar double ring | — |
-| Navigation link | Muted mono label | Ink | Solar ring | Ember underline via `aria-current` |
-| Date slider | Hairline track, ember thumb | — | Solar ring on the input | Thumb follows the drag |
-| Share button | Ghost; label confirms "Link copied" for 2.6 s | as ghost | Solar ring | — |
+State (`ExpState` in `src/state/store.ts`) is one slot: `rung`, `phase`,
+`progress`, `running`, `firedAt`, `announcement`. One experiment is ever active, and
+the scene reads it through `useOrbital.getState().exp` inside its own frame loop —
+so the controls never re-render the canvas.
 
-Missing capabilities remove the control instead of faking it: without the
-clipboard API the share buttons hide themselves, and they are hidden entirely
-when JavaScript is off.
+## 6. Navigation
 
-The flight link carries the moment: `?date=YYYY-MM-DD` in the URL sets the time
-control (clamped to its own range), the address bar follows every move of the
-slider, and *Back to today* returns the URL to the plain page. Sharing is
-therefore always honest — the link opens the sky the sharer saw, and the hero's
-"positions computed for …" line states the same date.
+* **The ruler** (`src/ui/Ruler.tsx`) is the primary navigation and the lesson at
+  once: eight marks at true logarithmic positions between 1.282 s and 4.354e17 s,
+  with a live readout in the visitor's own units (`ms` → `s` → `h` → `yr` → `M y` →
+  `G y`, via `formatLookback`). The crowding in the middle of the ruler is not a
+  bug; it is what a log axis does to starlight. Each mark is a real `<button>`, so
+  it is clickable *and* tabbable, with `aria-current` on the active rung.
+* **The index sheet** — the header's `Index` control opens a dialog listing all
+  eight rungs with their arrows and labels. Focus moves to the first item, `Escape`
+  closes, click-outside closes, and jumping closes it and scrolls.
+* **Anchors work.** Every rung has `id` (e.g. `#crab`); the URL hash is kept up to
+  date with `history.replaceState` as the visitor climbs, and a deep link is
+  honoured on load. That means a visitor can be sent to rung 6 directly, and
+  *Copy this rung* at the close does exactly that.
+* **Skip link** at the top of the document: *Skip to the ladder* → `#moon`.
 
-## 9. Mobile behaviour
+## 7. The close
 
-- Navigation folds behind the trigger; Escape and outside-press both close it.
-- Stations stack their copy bottom-left regardless of the desktop side — the
-  alternating composition is a landscape idea.
-- The camera uses the portrait bias in `docs/TECHNICAL.md`: further from every
-  subject, lateral framing reduced, so nothing is clipped by a narrow frame.
-- Spatial annotations are not created below 768 px; the section copy carries the
-  same information in text.
-- The hero's whisper moves to the top-left corner and the sticky viewport keeps
-  the headline clear of the navigation.
+The last screen states the conclusion in plain sentences, then offers two actions:
+*Look again* (back to the top) and *Copy this rung* (clipboard, with a link to the
+rung the visitor is currently inside — or First Light if the ladder was never
+climbed). If `navigator.clipboard` is missing or the write fails, the control
+removes itself instead of pretending to have copied. The colophon repeats the
+project's promises: no photographs, no textures, no tracking, no backend.
 
-## 10. Reduced motion and fallbacks
+## 8. States the interface must handle
 
-- **Reduced motion**: the camera cuts between whole keys, all reveals are
-  instant, the smooth scrolling is off. The date control still animates the
-  model — the motion was removed, not the meaning.
-- **No WebGL**: the canvas is hidden, a CSS sky renders instead, annotations are
-  never created, the veil is dropped immediately, and the control section states
-  plainly that the scene needs WebGL while the numbers keep working.
-- **No JavaScript**: every section renders as static, fully readable HTML; the
-  share controls and the veil are hidden by CSS; the CSS sky carries the stage
-  (the probe script removes that fallback in `<head>`, so there is no flash);
-  the anchor CTAs still navigate.
+| State | Behaviour |
+|-------|-----------|
+| First paint, React not yet mounted | The built HTML carries a `<noscript>` ladder and the plates are rendered from the same data; JS only adds the scene |
+| Scene chunk loading | The canvas is simply absent; the plates are already readable. `Boot` shows a three-line instrument log (aria-hidden) and clears on the scene's first frame or after 1900ms, whichever comes first |
+| Scene chunk failed / WebGL unavailable | `SceneBoundary` renders `CssSky`: a flat sky that changes colour with the active rung. The instrument card explains it |
+| Reduced motion requested | Camera snaps between whole rungs (no flight), reveals are placed immediately, pointer parallax off. Pulse clocks still run: they are data, not decoration — removing them would remove the point of the page |
+| Scrolling back up | The camera reverses; plates do not re-animate; the chrome wakes |
+| A short viewport (phone, landscape) | Plate becomes a card, camera biases the subject up and back (docs/RESPONSIVE.md) |
+| Keyboard only | Skip link → hero actions → ruler marks → each experiment in
+document order; the index sheet traps nothing but returns focus on close via the dialog's own ordering |
+
+## 9. Deliberate UX decisions
+
+* **No autoplaying animation of the photon.** The visitor presses a button because
+  pressing it is the act of looking.
+* **No progress bar for the whole page.** The ruler already is one, and it is
+  measured in the units of the subject rather than in percent.
+* **No share widgets.** One clipboard action, on the last screen, pointing at a
+  rung's anchor.
+* **Sources are never behind a toggle.** If a number is on screen, where it came
+  from is on screen.
+* **Nothing is hidden behind an interaction to make the page look cleaner.**
+  Every rung's fact, explanation and source are in the DOM before anything is
+  operated, which is also what makes the no-JS and no-WebGL paths work.

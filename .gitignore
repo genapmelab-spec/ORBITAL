@@ -1,6 +1,5 @@
-node_modules/
-dist/
-.astro/
+node_modules
+dist
+*.local
 .DS_Store
-*.log
-.env
+.vite

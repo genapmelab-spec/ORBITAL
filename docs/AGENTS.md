@@ -1,97 +1,105 @@
 # AGENTS — working on ORBITAL
 
-Read this before changing anything. It is short on purpose, and the rules are
-enforced by `npm run check` where a machine can enforce them.
+Short version: this repository has one content source, one colour source, one
+scene, and a gate that checks all three. Read this page before editing, run
+`npm run check` before calling anything done, and change documentation in the
+same pass as the behaviour it describes.
 
-## 1. What this project is
+## 1. The map
 
-A live model of the Solar System played as one continuous flight, as a landing
-page. Product intent: `docs/PRD.md`. Visual rules: `docs/DESIGN.md`. Copy:
-`docs/CONTENT.md`. Architecture and budgets: `docs/TECHNICAL.md`.
+| Path | What lives there |
+|---|---|
+| `src/content/ladder.ts` | **The single source of truth.** Eight rungs: id, index, label, name, value, unit, arrow, seconds, fact, explanation, source, accent, camera frame, experiment. |
+| `src/content/copy.ts` | All interface prose: mark, hero, instrument, chrome, boot, close. |
+| `src/lib/` | `scroll.ts` (scroll → rung position), `quality.ts` (tiers), `motion.ts` (reduced motion, GSAP), `format.ts` (duration formatting, visible + spoken). |
+| `src/state/store.ts` | zustand: tier, reduced, noWebgl, hud, ready, activeRung, indexOpen, experiment state. |
+| `src/ui/` | DOM layer: Chrome, Boot, Hud, IndexPanel, Ruler, Rung, Sections, Experiment; fallback/CssSky. |
+| `src/scene/` | three.js layer: Stage (the only canvas), CameraRig, Starfield, Thread, rungs/*, shaders/{glsl,materials}.ts, palette.ts. |
+| `src/styles/` | `tokens.css` (every colour, once), `fonts.css`, `global.css`. |
+| `tools/` | `check-content.mjs`, `check-budget.mjs` — the two gates. |
+| `docs/` | The written record: PRD, DESIGN, UX, ARCHITECTURE, 3D, ANIMATION, COMPONENTS, RESPONSIVE, PERFORMANCE, ACCESSIBILITY, CONTENT, this page. |
 
-## 2. The spine and the contract
+## 2. Invariants (breaking one is a bug, not a style choice)
 
-- `src/content/experience.ts` owns section order, copy and camera parameters.
-  Components and scripts read it; nothing hard-codes a parameter, an id or a
-  line of copy.
-- `src/three/camera/anchors.ts` owns scale, body specs and camera keys. A camera
-  key states where its subject lands on screen; `composeCamera()` solves the
-  position from that. Never hand-place a camera "until it looks right".
-- Station copy must sit on the opposite side of the frame from its subject. The
-  checker asserts this against `frameX`.
-- `tools/check-layout.mjs` must stay green. If a change breaks a check, the
-  change is wrong until proven otherwise — do not weaken a check to pass.
+1. **No images, textures, models or binary assets.** The page is type, CSS and
+   computed geometry. `check:budget` fails if any image file reaches `dist/`.
+2. **No colour literals outside two files.** Every colour lives in
+   `src/styles/tokens.css`; `src/scene/palette.ts` is the runtime mirror that reads
+   those custom properties. `check:content` scans `.ts`, `.tsx`, `.css` and fails
+   on a hex literal anywhere else. If a new colour is genuinely needed, it enters
+   `tokens.css` and the palette, plus `docs/DESIGN.md`.
+3. **Content is in the DOM.** The canvas and its wrapper are `aria-hidden="true"`.
+   Nothing may exist only as a 3D object; every fact, number and source is text.
+4. **The rungs keep their order and their numbers.** `check:content` asserts the
+   eight rungs, their index order, and that the arrow / fact / source strings match
+   `docs/CONTENT.md` verbatim. If you change a fact, you change it in
+   `src/content/ladder.ts` **and** `docs/CONTENT.md`, with a source.
+5. **Reduced motion, no WebGL and no JavaScript all work.** `?motion=reduce`,
+   `?nowebgl=1`, and the `<noscript>` ladder are contractual. The plugin in
+   `vite.config.ts` injects the ladder at build time; `check:budget` asserts it
+   survived into `dist/index.html`.
+6. **One canvas.** No second WebGL context, no offscreen work that outlives the
+   page.
 
-## 3. Non-negotiables
+## 3. Commands
 
-1. **No textures, no photographs, no models, no binary assets.** All imagery is
-   procedural. Adding an image file is a product change, not a technical one.
-2. **No user-agent sniffing.** Capability probes only (`webgl`, pointer type,
-   cores, width).
-3. **One renderer, one camera, one loop.** Only `OrbitalScene.ts` owns them.
-4. **No backend, no analytics, no runtime network calls.** Fonts are the single
-   third-party request and are preconnected.
-5. **No React, no R3F, no client framework.** Astro components, vanilla modules.
-6. **Design tokens only.** No hex colour in a component or a stylesheet other
-   than `src/styles/tokens.css` (and its mirror `src/three/systems/palette.ts`).
-7. **Critical content is never canvas-only.** Every fact exists as text in the
-   DOM, in the spine.
-8. **Reduced motion, no-WebGL and no-JS must keep working.** They are features;
-   breaking one is a regression.
-9. **Do not reorder the flight.** Sections, stations and keys are a script with a
-   rhythm (arrive → hold → depart). Reordering is a design decision that needs a
-   new contract, not an edit.
-10. **Prerendered output.** The build is static; nothing may require a server.
-
-## 4. Conventions
-
-- TypeScript strict; no `any`; type-only imports must use `import type`
-  (`verbatimModuleSyntax`); the project is written for Node's type stripping, so
-  no `enum`, no `namespace`, no parameter properties (`erasableSyntaxOnly`).
-- **Import specifiers include the extension** (`./thing.ts`) — the layout checker
-  imports the real modules in Node, so extensions are required there.
-- Every scene object implements `SceneObject` (`root`, `update(ctx)`,
-  `dispose()`), and disposal releases geometries, materials and listeners.
-- Section markup carries `data-section`, `data-id` and `data-param`; the scroll
-  mapping and the navigation depend on them.
-- Comments explain *why*. A comment that restates the code should be deleted.
-
-## 5. Motion rules
-
-- The camera path is eased straight segments with a quintic ease; arrivals are
-  calm, holds are still, departures are unhurried. Do not add bounce, overshoot
-  or elastic easing anywhere.
-- Reveals are `opacity` + `y ≤ 22px`, once, triggered by scroll position.
-- Nothing animates on a timer that the visitor did not cause, except the
-  one-time veil exit and its 3.2 s safety net.
-- New motion must have a reduced-motion answer before it is merged.
-
-## 6. Performance rules
-
-- Stay inside the budgets in `docs/TECHNICAL.md`. New geometry must be
-  instanced, seeded and disposable; new per-frame work must be O(1) per object.
-- One draw call per thing. If something needs a second material, explain why.
-- Anything allocated per frame must be pre-allocated in the closure instead.
-- The scene is loaded lazily; do not import it from a component or the main page
-  scripts.
-
-## 7. Accessibility rules
-
-- The canvas is decoration: `aria-hidden`, `pointer-events: none`.
-- Every control is keyboard reachable, labelled, and visible when focused.
-- The navigation must never retract while it holds focus or while its panel is
-  open.
-- Contrast: AA on any text over the scene, which means a scrim or a pure-void
-  background behind it.
-- Copy that means something must exist as text, not only as an annotation.
-
-## 8. Before you say it is done
-
-```bash
-npm run check   # astro check + the layout/content contract
-npm run build   # production build
-npm run preview # then look at it
+```
+npm run dev          # Vite dev server
+npm run build        # production build into dist/
+npm run preview      # serve the built page
+npm run typecheck    # tsc --noEmit, strict
+npm run check:content
+npm run check:budget # reads dist/, so build first
+npm run check        # typecheck && content && build && budget
 ```
 
-Then re-read `docs/PRD.md` §2 (goals) and `docs/DESIGN.md` §6 (what the design
-refuses). A change that passes the checks but weakens either one is not done.
+`npm run check` is the definition of done. It exits non-zero on a stray colour, a
+changed fact, a missing source, a missing noscript rung, or a bundle over budget.
+Never relax a budget or weaken an assertion to make it pass; fix the cause or say
+plainly in the final report that it failed.
+
+## 4. Changing a rung
+
+1. Edit `src/content/ladder.ts` — the object is typed (`Rung`), so a missing field
+   is a compile error.
+2. Keep `arrow`, `fact` and `source` identical to `docs/CONTENT.md` (that file is
+   the human-readable record; the checker compares against it).
+3. If the change affects the shot, adjust `frame: { pos, look }` in the same
+   object; the camera keys are read from it, there is nowhere else to edit.
+4. If an experiment changes, remember the visible `result` and `detail` are the
+   real output; the mechanism is the demonstration, not the source of truth.
+5. Run `npm run check`.
+
+## 5. Working rules that are easy to get wrong
+
+* **Numbers: `seconds` is the canonical value.** Arrows, spoken forms and every
+  readout derive from it through `src/lib/format.ts`. Do not store "13.8 G y" as a
+  string anywhere except the visible `value`/`unit` pair on the plate.
+* **The log scale is deliberate.** `lookbackAt()` interpolates logarithmically
+  between rungs; the ruler positions marks logarithmically too. Both are part of
+  the lesson — changing either to linear makes the diagram lie.
+* **Sleep band.** Rung work is skipped beyond ±1.15 rung positions from the camera
+  (`src/scene/rungs/parts.tsx`). If you add per-frame work to a rung, route it
+  through that gate or the frame cost of the whole page changes.
+* **Tiers change counts, never content.** The governor may step a device down at
+  runtime; nothing a visitor reads may depend on the tier.
+* **`?hud=1` exposes `window.__orbital`** (renderer, scene, camera, ladder) for
+  measurement. It is a QC tool, not a feature: keep it out of the product UI.
+* **The scripts import TypeScript directly** (Node 24 type-stripping). A tool can
+  `import { RUNGS } from '../src/content/ladder.ts'`; keep those files free of
+  imports that Node cannot resolve (no `.tsx`, no Vite aliases, no browser globals
+  at module top level).
+* **Paths in tools are URL-decoded** because the workspace path contains a space;
+  copy the existing `decodeURIComponent(new URL(...).pathname)` pattern rather than
+  inventing a new one.
+* **Do not commit build output.** `dist/` is regenerated; the gate rebuilds it.
+
+## 6. Documentation
+
+Behaviour changes land with the document that describes them. The mapping is
+one-to-one: performance → `PERFORMANCE.md`, accessibility → `ACCESSIBILITY.md`,
+the scene → `3D.md`, camera and reveals → `ANIMATION.md`, components → `COMPONENTS.md`,
+breakpoints → `RESPONSIVE.md`, content and sources → `CONTENT.md`. Numbers quoted
+in docs must be reproducible from the repository; if a measurement cannot be made
+in the working environment, say so there and in the root `README.md` instead of
+quoting a plausible figure.
